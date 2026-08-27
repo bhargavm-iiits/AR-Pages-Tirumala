@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- login.xlsx and logins.json both live in Application.persistentDataPath on-device
+     (ExcelLoginStore.cs) — files-path here maps to exactly that directory. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="exported_files" path="." />
+</paths>
