@@ -1,0 +1,73 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Uu]ser[Ss]ettings/
+
+# Asset meta backups
+*.tmp
+*.orig
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated meta files (keep .meta for tracked assets, ignore for ignored dirs above)
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics
+crashlytics-build.properties
+
+# Visual Studio / Rider / VS Code cache
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Route-data backups written by Tools ▸ Alipiri AR ▸ Import KML Route — local recovery
+# artifacts, not source. Deliberately outside Assets/ so they never ship inside the APK.
+/Backups/
+
+# Unity 6 il2cpp / burst backup dirs
+# The leading `/[Bb]ackup*` form only matched folders literally starting with "Backup" —
+# Unity names them "<ProductName>_BackUpThisFolder_...", so the real one (693 files of build
+# output at the repo root) slipped through. Match the suffix instead.
+/*[Bb]ackUpThisFolder_ButDontShipItWithYourGame/
+/[Bb]ackup*ButDontShipItWithYourGame/
+/*_BurstDebugInformation_DoNotShip/
+/.utmp/
+
+# Third-party installers — never source. Docs/ProtonVPN_v5.1.7_x64.exe is 127 MB, which also
+# exceeds GitHub's 100 MB hard per-file limit and would reject the push outright.
+*.exe
+*.msi
+
+# Local Excel export (regenerated at runtime, contains personal data)
+Assets/login.xlsx
+Assets/login.xlsx.meta

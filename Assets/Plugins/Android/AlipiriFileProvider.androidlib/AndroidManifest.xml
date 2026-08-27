@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Classic Eclipse-style Android Library manifest (Unity's ".androidlib" convention — the folder
+  name suffix is what tells Unity to treat this as a library module with its own res/, since
+  Unity 6 removed support for loose resources directly under Assets/Plugins/Android/res). This
+  package name is only used for R-class namespacing inside the library; it does not need to
+  match the app's applicationId.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.alipiriar.navigation.fileprovider">
+    <application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  IMPORTANT — verified on a real device, not assumed: providing ANY file at this exact path
+  makes Unity skip injecting its own complete UnityPlayerGameActivity declaration (exported,
+  launch mode, orientation, config-change handling, intent-filter, native-lib meta-data) and
+  fall back to a bare `<activity android:name="..."/>` stub with none of that — confirmed by
+  clearing the entire Library/Bee/Android build cache and inspecting the freshly generated
+  manifest at every merge stage, so this isn't stale-cache confusion. The activity below is
+  reconstructed from a real successful build's compiled manifest (dumped via `aapt dump
+  xmltree`) before this file existed, not guessed — every attribute here is a verified value.
+  android:theme below is "@style/BaseUnityGameActivityTheme", found in Unity's own generated
+  unityLibrary/src/main/res/values/styles.xml (extends Theme.AppCompat.Light.NoActionBar) —
+  omitting it entirely was tried first and crashed on launch with IllegalStateException("You
+  need to use a Theme.AppCompat theme (or descendant) with this activity"), since
+  UnityPlayerGameActivity extends AppCompat's GameActivity and requires one; the compiled
+  resource ID Unity's own default manifest uses (@0x7f0e00a1) has no stable symbolic name to
+  reference directly, but this style name does.
+
+  Also carries:
+  1. android.permission.CAMERA — found missing entirely from a real device build (confirmed via
+     `aapt dump permissions`), which meant ARSessionBootstrapper's runtime permission request
+     could never succeed no matter what the C# did, since Android requires a permission to be
+     DECLARED before it can be requested at runtime. AR Foundation/ARCore's own package manifest
+     apparently doesn't inject this on its own in this project's configuration.
+  2. The FileProvider Settings' "Export Login Sheet" needs to hand login.xlsx to the Android
+     share sheet without a raw file:// URI (blocked since Android 7, and this project's
+     AndroidMinSdkVersion is 26) — PLAN.md §06.
+  3. tools:node="remove" on INTERNET — confirmed via a real Release build (BuildAndroidApk, not
+     the Development path): PlayerSettings' ForceInternetPermission is already false, but that
+     only stops UNITY from requesting it; ARCore's own bundled AAR manifest requests INTERNET
+     unconditionally (for Cloud Anchors / Depth API updates this app never uses), and Android's
+     manifest merger keeps a library's permission unless the app's own manifest explicitly
+     strips it. Confirmed present in the built APK (aapt dump / zip-extracted manifest) even
+     with ForceInternetPermission off — this line is what actually removes it, not that setting.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+
+    <application>
+        <!-- Standard ARCore "optional" declaration (Google's documented manifest recipe) —
+             "optional" matches this app's actual design: full AR when available, offline map
+             fallback when not, never AR-required at install/listing time. -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
+            android:name="com.unity3d.player.UnityPlayerGameActivity"
+            android:theme="@style/BaseUnityGameActivityTheme"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:hardwareAccelerated="false"
+            android:resizeableActivity="true"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+            <meta-data android:name="android.app.lib_name" android:value="game" />
+        </activity>
+    </application>
+</manifest>
