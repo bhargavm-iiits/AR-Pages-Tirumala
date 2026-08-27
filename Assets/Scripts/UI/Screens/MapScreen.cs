@@ -67,7 +67,7 @@ namespace AlipiriAR.UI
             DemoBasemap.Create(_mapView, bounds);
             TileBasemap.Create(_mapView);
             RouteOverlay.Create(_mapView, waypoints);
-            PoiMarkerLayer.Create(_mapView, _db.Landmarks, () => ServiceLocator.Get<UIRoot>().OverlayContainer);
+            PoiMarkerLayer.Create(_mapView, _db.Landmarks, _db.Route.TotalDistanceMeters, () => ServiceLocator.Get<UIRoot>().OverlayContainer);
             _userMarker = UserMarker.Create(_mapView);
             _userMarker.SetAccuracyMeters(8f);
 

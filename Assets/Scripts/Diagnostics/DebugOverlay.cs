@@ -1,5 +1,6 @@
 using System.Text;
 using AlipiriAR.AR;
+using AlipiriAR.AR.Geospatial;
 using AlipiriAR.Positioning;
 using AlipiriAR.UI;
 using TMPro;
@@ -24,6 +25,7 @@ namespace AlipiriAR.Diagnostics
         private ARSessionBootstrapper _bootstrapper;
         private HybridLocalizationEngine _localization;
         private GroundPlacementService _placement;
+        private GeospatialSession _geospatial;
 
         private CanvasGroup _group;
         private TMP_Text _readout;
@@ -51,12 +53,14 @@ namespace AlipiriAR.Diagnostics
         public void AttachBootstrapper(ARSessionBootstrapper bootstrapper) => _bootstrapper = bootstrapper;
 
         /// <summary>Called once AR state reaches Ready, when ARNavigationScreen constructs its
-        /// placement/localization services.</summary>
-        public void AttachAr(ARSessionBootstrapper bootstrapper, HybridLocalizationEngine localization, GroundPlacementService placement)
+        /// placement/localization services. geospatial is optional so existing call sites (e.g.
+        /// GpsTraceRecorder's own AttachAr overload) don't need updating.</summary>
+        public void AttachAr(ARSessionBootstrapper bootstrapper, HybridLocalizationEngine localization, GroundPlacementService placement, GeospatialSession geospatial = null)
         {
             _bootstrapper = bootstrapper;
             _localization = localization;
             _placement = placement;
+            _geospatial = geospatial;
         }
 
         public void SetVisible(bool visible)
@@ -186,6 +190,17 @@ namespace AlipiriAR.Diagnostics
                     or Positioning.LocationSourceStatus.ServicesDisabled
                     or Positioning.LocationSourceStatus.Failed)
                     sb.Append(" <color=#E5573F>⚠</color>"); // UITheme.Critical
+                sb.Append('\n');
+            }
+
+            // Rev 4 (Docs/GeospatialPlan.md §06 Phase I) — Earth state and pose source alongside
+            // the existing Source GPS/SIM row above. Always reads "Unsupported" today since
+            // GeospatialSession is a documented no-op until ARCore Extensions is installed.
+            if (_geospatial != null)
+            {
+                sb.Append("<b>Geo</b>  ").Append(_geospatial.Availability);
+                if (_geospatial.LastHorizontalAccuracyMeters >= 0f)
+                    sb.Append("  ±").Append(_geospatial.LastHorizontalAccuracyMeters.ToString("F1")).Append(" m");
                 sb.Append('\n');
             }
 

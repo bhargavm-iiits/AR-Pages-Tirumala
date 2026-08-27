@@ -263,15 +263,15 @@ Explicitly **not** in v1: a backend, a CDN, remote content management, analytics
 characters. All reachable from this architecture later; none on the critical path to proving the
 idea works on the mountain.
 
-## 10 · Open decisions
+## 10 · Decisions
 
-| Decision | Needed by | Notes |
+| Decision | Status | Notes |
 |---|---|---|
-| **Accept the INTERNET permission?** | Phase G, day one | Reverses a headline scope decision (§04 B1). Recommendation: accept, restate scope in About and Settings |
-| **Which 3–5 landmarks per zone?** | Phase K | Of the 40 — needs a human choice: real physical presence and a story worth 60 seconds, not the geometrically convenient ones |
-| **What is the heritage content, and who writes it?** | Phase K | The proposal assumes historical stories exist. They do not — `voiceText` is one-line navigation copy ("You are now Started from Alipiri Mettu"). Heritage narration is a writing project, and for a pilgrimage site it wants a source and a reviewer, not a generated draft |
-| **Does the KML carry altitude?** (from Rev 3) | Phase F, and now J | Terrain anchors reduce the need, but altitude still improves the elevation profile and step count for free |
-| **The 1,171.7 m route gap** | ongoing | OSM never digitised the middle 16.1%. Rendered amber and honestly flagged, but AR arrows there cannot be trusted until the KML lands — or until the gap is self-surveyed with `GpsTraceRecorder`, which already works |
+| **Accept the INTERNET permission?** | **✓ decided 2026-08-27 — accept** | `AndroidManifest.xml`'s `tools:node="remove"` on INTERNET removed; the permission is now live in the manifest. Recorded inline in the manifest's own comment block, with the reasoning preserved rather than deleted. No code opens a socket yet — `GeospatialSession` is still the documented no-op from Phase I until Phase G's package + Cloud project exist — so this grants the permission ahead of the capability that will use it, deliberately, so Phase G isn't blocked re-adding it later. About/Settings copy audited: no "fully offline" or "no data leaves your device" claim exists anywhere in the shipped strings today, so nothing is currently false. Add a network-use disclosure line to About once Phase G actually makes a network call — not before, since claiming a capability that doesn't exist yet would be its own kind of dishonesty |
+| **Which 3–5 landmarks per zone?** | **✓ decided 2026-08-27 — 4 + 4** | Picked by proximity to each endpoint (haversine against the Alipiri arch and Tirumala end) plus type — excluding pure-utility entries (water point, medical center, plain step-count markers). **START** (all within 215 m of the arch): id 6 Rajagopuram, id 4 Venkateshwara Swamy Padalu Mandapam, id 5 Mathsyavataram, id 7 Baktha Anjaneya Swamy Statue. **END** (within 555 m of Tirumala): id 41 Alipiri Last Step, id 40 Alwar Statue, id 39 Kulashekhar Alvar, id 38 Dova Bashyakarla Sannidhi. Flagged in `landmarks.json` with `zone`/`geospatialEnabled: true`/`anchorType: TERRAIN`/`experienceId` — the other 32 entries are untouched. **This is a proximity+type judgment call, not a cultural or narrative one** — swap any entry by editing one JSON object, no code change |
+| **What is the heritage content, and who writes it?** | **still open** | Not decided here, deliberately. The 8 flagged landmarks keep their existing one-line `voiceText`/`description` — no heritage narration was written or invented for them. Per the note directly above this row in the previous revision: for a pilgrimage site this wants a source and a reviewer, not a generated draft. `heritage.json` (§07) doesn't exist yet; Phase K is where this gets answered |
+| **Does the KML carry altitude?** (from Rev 3) | open | Terrain anchors reduce the need, but altitude still improves the elevation profile and step count for free |
+| **The 1,171.7 m route gap** | open | OSM never digitised the middle 16.1%. Rendered amber and honestly flagged, but AR arrows there cannot be trusted until the KML lands — or until the gap is self-surveyed with `GpsTraceRecorder`, which already works |
 
 ---
 

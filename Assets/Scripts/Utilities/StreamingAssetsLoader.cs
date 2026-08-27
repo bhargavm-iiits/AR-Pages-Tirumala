@@ -75,5 +75,27 @@ namespace AlipiriAR.Utilities
 
             onLoaded(request.downloadHandler.data);
         }
+
+        /// <summary>Decodes a StreamingAssets image (PNG/JPG) into a Texture2D. Goes through
+        /// LoadBytes + Texture2D.LoadImage rather than UnityWebRequestTexture — one code path for
+        /// every StreamingAssets read (Editor fast path included) instead of a second, parallel
+        /// Android-vs-Editor branch just for images. onLoaded(null) on any failure — a missing or
+        /// corrupt landmark portrait must never be fatal, only fall back to the procedural icon
+        /// that already covers every landmark without one (PLAN.md §03).</summary>
+        public static IEnumerator LoadTexture(string relativePath, Action<Texture2D> onLoaded)
+        {
+            byte[] bytes = null;
+            yield return LoadBytes(relativePath, b => bytes = b);
+            if (bytes == null) { onLoaded(null); yield break; }
+
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (!tex.LoadImage(bytes))
+            {
+                UnityEngine.Object.Destroy(tex);
+                onLoaded(null);
+                yield break;
+            }
+            onLoaded(tex);
+        }
     }
 }

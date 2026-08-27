@@ -27,5 +27,24 @@ namespace AlipiriAR.Data
         /// screen's schematic view, so PoiMarkerLayer pins to this snapped pair instead.</summary>
         public double SnappedLatitude;
         public double SnappedLongitude;
+
+        /// <summary>Rev 4 heritage layer (Docs/GeospatialPlan.md §07). No "zone" field exists in
+        /// the source data yet, so every current entry parses to Route and behaves exactly as
+        /// before — nothing reads this until a RouteModeManager exists (Phase L).</summary>
+        public RouteZone Zone;
+
+        /// <summary>True only for the 3-5 landmarks per end eventually chosen for the heritage
+        /// layer (§07/§10 — still an open decision, none chosen yet). Defaults false: no existing
+        /// landmark becomes a heritage experience just because this field exists.</summary>
+        public bool GeospatialEnabled;
+
+        /// <summary>Only meaningful when GeospatialEnabled is true. Defaults to Terrain.</summary>
+        public GeospatialAnchorType AnchorType;
+
+        /// <summary>Null for every ordinary navigation landmark. Non-null keys into a separate
+        /// heritage.json content file (§07) once that file and its loader exist — kept out of
+        /// landmarks.json/JsonDatabase deliberately, so revising heritage narration never touches
+        /// route/navigation data.</summary>
+        public string ExperienceId;
     }
 }
