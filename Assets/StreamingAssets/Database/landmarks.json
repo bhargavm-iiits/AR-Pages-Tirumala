@@ -50,7 +50,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "START",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L004"
     },
     {
       "id": 5,
@@ -63,7 +67,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "START",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L005"
     },
     {
       "id": 6,
@@ -76,7 +84,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "START",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L006"
     },
     {
       "id": 7,
@@ -89,7 +101,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "START",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L007"
     },
     {
       "id": 8,
@@ -479,7 +495,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "END",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L038"
     },
     {
       "id": 39,
@@ -492,7 +512,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "END",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L039"
     },
     {
       "id": 40,
@@ -505,7 +529,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "END",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L040"
     },
     {
       "id": 41,
@@ -518,7 +546,11 @@
       "audio": null,
       "arPrefab": "TempleMarker",
       "priority": 1,
-      "visited": false
+      "visited": false,
+      "zone": "END",
+      "geospatialEnabled": true,
+      "anchorType": "TERRAIN",
+      "experienceId": "EXP_L041"
     }
   ]
 }

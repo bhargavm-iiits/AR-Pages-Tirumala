@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AlipiriAR.AR;
+using AlipiriAR.AR.Geospatial;
 using AlipiriAR.Core;
 using AlipiriAR.Data;
 using AlipiriAR.Database;
@@ -44,6 +45,7 @@ namespace AlipiriAR.UI
         private ARSessionBootstrapper _bootstrapper;
         private GroundPlacementService _placement;
         private HybridLocalizationEngine _localization;
+        private GeospatialSession _geospatial;
         private DynamicArrowManager _arrows;
         private NavigationSession _session;
         private JsonDatabase _db;
@@ -68,6 +70,8 @@ namespace AlipiriAR.UI
         private TMP_Text _statNextValue;
         private TMP_Text _statEtaValue;
         private Image _progressFill;
+
+        private RectTransform _startHintPill;
 
         private BrightnessMode _brightness = BrightnessMode.Auto;
         private bool _autoAdvance = true;
@@ -95,11 +99,13 @@ namespace AlipiriAR.UI
             BuildLeftRail(root);
             BuildRightBadge(root);
             BuildBottomCard(root);
+            BuildStartHint(root);
 
             _session = NavigationSession.Resolve();
             _session.Location.OnFixFiltered += OnLocationFix;
             _session.Triggers.OnArrived += OnArrived;
             _session.Location.OnAccuracyLevelChanged += OnAccuracyLevelChanged;
+            _session.OnStateChanged += OnSessionStateChanged;
 
             RefreshStatCard();
             RefreshTopPill();
@@ -161,6 +167,7 @@ namespace AlipiriAR.UI
         {
             bool ready = state == ArAvailabilityState.Ready;
             _fallbackPanel.gameObject.SetActive(!ready);
+            RefreshStartHint();
             var clear = new Color(0f, 0f, 0f, 0f);
             _backgroundImg.color = ready ? clear : UITheme.Ground;
             // _backgroundImg alone only covers the safe-area-inset region. The real camera
@@ -188,10 +195,16 @@ namespace AlipiriAR.UI
                 case ArAvailabilityState.Ready:
                     _placement = new GroundPlacementService(_bootstrapper.RaycastManager, _bootstrapper.ArCamera);
                     _localization = new HybridLocalizationEngine(_bootstrapper.ArCamera);
+                    // Rev 4 (Docs/GeospatialPlan.md §06 Phase I) — constructed unconditionally
+                    // since it's a plain C# class with no package dependency, but every method on
+                    // it is a documented no-op until ARCore Extensions is actually installed (see
+                    // GeospatialSession's class doc). OnLocationFix below consults it first and
+                    // falls straight through to the existing GPS path when it declines.
+                    _geospatial = new GeospatialSession();
                     _arrows = new DynamicArrowManager(_db.Route.Waypoints, _placement, _localization, _bootstrapper.Origin.transform);
 
                     if (ServiceLocator.TryGet<Diagnostics.DebugOverlay>(out var readyOverlay))
-                        readyOverlay.AttachAr(_bootstrapper, _localization, _placement);
+                        readyOverlay.AttachAr(_bootstrapper, _localization, _placement, _geospatial);
                     if (ServiceLocator.TryGet<Diagnostics.GpsTraceRecorder>(out var readyTrace))
                         readyTrace.AttachAr(_bootstrapper, _localization, _placement);
                     break;
@@ -611,6 +624,51 @@ namespace AlipiriAR.UI
         }
 
         // ---------------------------------------------------------------
+        // Start-navigation hint
+        // ---------------------------------------------------------------
+
+        /// <summary>Navigation only ever starts from the drawer's "Start Navigation" row
+        /// (NavigationSession's own class doc, D11) — opening this tab alone shows the camera but
+        /// leaves _session.State at Idle, which means Update() never calls _arrows.Refresh and
+        /// Location.Play() is never called, so no chevrons ever appear and no GPS fix is ever
+        /// acquired. That's intentional (see NavigationSession.cs), but with nothing on screen
+        /// saying so, a first-time walker reasonably reads "camera on, no arrows" as broken rather
+        /// than "navigation hasn't been started yet." This pill is the fix — shown only while AR
+        /// is actually Ready and the session is Idle/Ended, so it never fights the fallback panel
+        /// (which already covers Checking/Installing/Unsupported/Failed) or shows once walking.</summary>
+        private void BuildStartHint(Transform parent)
+        {
+            var rt = UIFactory.CreateRect("StartHint", parent);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(720f, 100f);
+
+            UIFactory.RoundedShadow(rt, 50f);
+            var bg = UIFactory.Pill(rt, UITheme.Glass);
+            var btn = bg.gameObject.AddComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(OpenDrawer);
+
+            var label = UIFactory.Label(bg.transform, string.Empty, UITheme.LabelFontSize,
+                FontStyles.Bold, TextAlignmentOptions.Center, UITheme.TextPrimary);
+            LocalizedLabel.Bind(label, "nav.start_hint");
+
+            _startHintPill = rt;
+            _startHintPill.gameObject.SetActive(false);
+        }
+
+        private void RefreshStartHint()
+        {
+            if (_startHintPill == null) return;
+            bool arReady = _bootstrapper != null && _bootstrapper.State == ArAvailabilityState.Ready;
+            bool navIdle = _session == null || _session.State is NavigationState.Idle or NavigationState.Ended;
+            _startHintPill.gameObject.SetActive(arReady && navIdle);
+        }
+
+        private void OnSessionStateChanged(NavigationState state) => RefreshStartHint();
+
+        // ---------------------------------------------------------------
         // Drawer / overlays
         // ---------------------------------------------------------------
 
@@ -702,7 +760,15 @@ namespace AlipiriAR.UI
         private void OnLocationFix(double rawLat, double rawLon, float headingDeg, float accuracyMeters)
         {
             _lastHeadingDeg = headingDeg;
-            _localization?.FeedFix(_session.Progress.Latitude, _session.Progress.Longitude, headingDeg, accuracyMeters);
+
+            // Rev 4 (Docs/GeospatialPlan.md §06 Phase I) — a Geospatial pose is just a better fix
+            // through FeedFix's existing door. TryGetPose always returns false until the ARCore
+            // Extensions package is actually installed and wired (GeospatialSession's class doc),
+            // so this is a no-op today and the line below behaves exactly as it did before.
+            if (_geospatial != null && _geospatial.TryGetPose(out double geoLat, out double geoLon, out float geoHeading, out float geoAccuracy))
+                _localization?.FeedFix(geoLat, geoLon, geoHeading, geoAccuracy);
+            else
+                _localization?.FeedFix(_session.Progress.Latitude, _session.Progress.Longitude, headingDeg, accuracyMeters);
 
             RefreshTopPill();
             RefreshStatCard();
@@ -757,6 +823,7 @@ namespace AlipiriAR.UI
                 _session.Location.OnFixFiltered -= OnLocationFix;
                 _session.Triggers.OnArrived -= OnArrived;
                 _session.Location.OnAccuracyLevelChanged -= OnAccuracyLevelChanged;
+                _session.OnStateChanged -= OnSessionStateChanged;
             }
         }
     }

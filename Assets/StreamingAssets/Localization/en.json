@@ -47,6 +47,7 @@
   "nav.permission_camera_body": "Alipiri AR Navigation uses your camera to place walking directions on the path ahead. Nothing is recorded or uploaded.",
   "nav.permission_location_title": "Location access needed",
   "nav.permission_location_body": "Your position is used only on this device to track progress along the route. It is never sent anywhere.",
+  "nav.start_hint": "Tap ☰ then Start Navigation to see the route",
   "nav.drawer_start": "Start Navigation",
   "nav.drawer_pause": "Pause Navigation",
   "nav.drawer_resume": "Resume Navigation",

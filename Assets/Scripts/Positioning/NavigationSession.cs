@@ -70,7 +70,11 @@ namespace AlipiriAR.Positioning
         private void HandleFix(double lat, double lon, float headingDeg, float accuracyMeters)
         {
             if (State != NavigationState.Active) return;
-            Progress.Feed(lat, lon, Time.unscaledTimeAsDouble);
+            // TraceReplaySource's fixes are exact by construction — RouteProgressTracker's
+            // jitter-absorption band exists for real GPS noise, and would only turn the desk-test
+            // walker's smooth progress into chunky multi-metre jumps if applied here too.
+            bool trustExactly = Location.Mode == LocationSourceMode.TraceReplay;
+            Progress.Feed(lat, lon, Time.unscaledTimeAsDouble, accuracyMeters, trustExactly);
             Triggers.Feed(lat, lon);
         }
 

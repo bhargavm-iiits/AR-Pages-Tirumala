@@ -35,7 +35,6 @@ namespace AlipiriAR.UI
         private RectTransform _overlayContainer;
         private readonly List<UIScreen> _screens = new();
         private BottomNavBar _navBar;
-        private LoginScreen _loginScreen;
         private RectTransform _shellRoot;
         private int _activeTab = -1;
 
@@ -92,10 +91,9 @@ namespace AlipiriAR.UI
             _overlayContainer = UIFactory.CreateRect("Overlays", _shellRoot);
             UIFactory.StretchFill(_overlayContainer);
 
-            // Constructed here, before ShowShell()/ShowLogin() below, specifically so a
-            // returning user (HasProfile == true) — whose ARNavigationScreen.Build() runs
+            // Constructed here, before ShowShell() below, since ARNavigationScreen.Build() runs
             // synchronously inside ShowShell()'s SelectTab(0) call, before this method even
-            // returns — still finds both already registered (NewPlan.md §04 Phase B).
+            // returns — both need to already be registered (NewPlan.md §04 Phase B).
             var session = NavigationSession.Resolve();
             var trace = new GpsTraceRecorder(session.Location, session);
             ServiceLocator.Register(trace);
@@ -104,15 +102,11 @@ namespace AlipiriAR.UI
 
             BackStackManager.Instance.Push(HandleRootBack);
 
-            var profileService = ProfileService.Resolve();
-            if (profileService.HasProfile)
-            {
-                ShowShell();
-            }
-            else
-            {
-                ShowLogin(safeAreaRoot);
-            }
+            // Login gate removed on request — every launch goes straight to the tab shell now,
+            // profile or not. LoginScreen itself is untouched and still reachable from Settings'
+            // "Edit Profile" row (ShowEditProfileOverlay below), which already null-checks
+            // ProfileService.Current, so a user who never went through Login doesn't crash it.
+            ShowShell();
         }
 
         private void BuildScreen<T>() where T : UIScreen
@@ -121,23 +115,6 @@ namespace AlipiriAR.UI
             var screen = go.AddComponent<T>();
             screen.Initialize(_screensContainer);
             _screens.Add(screen);
-        }
-
-        private void ShowLogin(RectTransform safeAreaRoot)
-        {
-            var go = new GameObject("LoginScreen", typeof(RectTransform));
-            _loginScreen = go.AddComponent<LoginScreen>();
-            _loginScreen.Initialize(safeAreaRoot);
-            _loginScreen.OnCompleted += OnLoginCompleted;
-            _loginScreen.Show();
-        }
-
-        private void OnLoginCompleted()
-        {
-            _loginScreen.OnCompleted -= OnLoginCompleted;
-            Destroy(_loginScreen.gameObject);
-            _loginScreen = null;
-            ShowShell();
         }
 
         private void ShowShell()
@@ -161,7 +138,6 @@ namespace AlipiriAR.UI
         /// otherwise does not consume (a future "confirm exit" overlay hooks in here).</summary>
         private bool HandleRootBack()
         {
-            if (_loginScreen != null) return false;
             if (_activeTab != DefaultTabIndex)
             {
                 SelectTab(DefaultTabIndex);

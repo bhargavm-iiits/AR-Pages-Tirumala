@@ -91,6 +91,13 @@ namespace AlipiriAR.Database
                     // content pass gives the two a chance to diverge.
                     Description = string.IsNullOrEmpty(description) ? voiceText : description,
                     Priority = token.Value<int?>("priority") ?? 1,
+                    // Rev 4 heritage layer fields (Docs/GeospatialPlan.md §07) — none exist in the
+                    // source data yet, so every entry parses to its documented default and
+                    // behaves exactly as it did before this field existed.
+                    Zone = RouteZoneExtensions.Parse(token.Value<string>("zone")),
+                    GeospatialEnabled = token.Value<bool?>("geospatialEnabled") ?? false,
+                    AnchorType = GeospatialAnchorTypeExtensions.Parse(token.Value<string>("anchorType")),
+                    ExperienceId = token.Value<string>("experienceId"),
                 };
                 result.Add(lm);
             }

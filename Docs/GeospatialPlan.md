@@ -282,14 +282,14 @@ the critical path to proving the idea works on the mountain.
 
 ---
 
-## 08 · Open decisions
+## 08 · Decisions
 
-| Decision | Needed by | Notes |
+| Decision | Status | Notes |
 |---|---|---|
-| **Accept the INTERNET permission?** | Phase G, day one | Reverses a headline scope decision (§02 B1). Recommendation: accept, and restate the app's scope as "offline navigation, connected heritage at the ends" in About and Settings |
-| **Which 3–5 landmarks per zone?** | Phase K | Of the 40, needs a human choice — the ones with real physical presence and a story worth 60 seconds, not just the geometrically convenient ones |
-| **What is the heritage content, and who writes it?** | Phase K | The proposal assumes historical stories exist. They do not — `voiceText` is one-line navigation copy ("You are now Started from Alipiri Mettu"). Heritage narration is a writing project, and for a pilgrimage site it wants a source and a reviewer, not a generated draft |
-| **Does the KML carry altitude?** (carried from Rev 3) | Phase F, and now also J | Terrain anchors reduce the need, but altitude would still improve the elevation profile and step count for free |
+| **Accept the INTERNET permission?** | **✓ decided 2026-08-27 — accept** | `AndroidManifest.xml`'s `tools:node="remove"` removed; INTERNET is live in the manifest as of this decision. Reasoning kept inline in the manifest's comment rather than deleted. Granted ahead of any code that uses it — `GeospatialSession` (§06) is still a documented no-op — so Phase G isn't blocked re-adding this later. About/Settings audited: no "fully offline" claim exists in shipped copy, so nothing is currently false; add a network-use disclosure line once Phase G makes an actual call, not before |
+| **Which 3–5 landmarks per zone?** | **✓ decided 2026-08-27 — 4 + 4** | Picked by haversine distance to each endpoint plus type, excluding pure-utility entries. START (≤215 m from the arch): id 6 Rajagopuram, id 4 Padalu Mandapam, id 5 Mathsyavataram, id 7 Baktha Anjaneya Swamy Statue. END (≤555 m from Tirumala): id 41 Alipiri Last Step, id 40 Alwar Statue, id 39 Kulashekhar Alvar, id 38 Dova Bashyakarla Sannidhi. Flagged in `landmarks.json` (§05) — the other 32 entries untouched. A proximity+type call, not a narrative one; swap any entry with one JSON edit |
+| **What is the heritage content, and who writes it?** | **still open** | Deliberately not answered by the landmark selection above — the 8 flagged entries keep their existing one-line `voiceText`, no narration was written or invented for them. For a pilgrimage site this wants a human source and a reviewer, not a generated draft. `heritage.json` (§05) doesn't exist yet; Phase K is where this gets answered |
+| **Does the KML carry altitude?** (carried from Rev 3) | open | Terrain anchors reduce the need, but altitude would still improve the elevation profile and step count for free |
 
 ---
 

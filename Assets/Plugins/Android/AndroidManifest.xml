@@ -25,18 +25,26 @@
   2. The FileProvider Settings' "Export Login Sheet" needs to hand login.xlsx to the Android
      share sheet without a raw file:// URI (blocked since Android 7, and this project's
      AndroidMinSdkVersion is 26) — PLAN.md §06.
-  3. tools:node="remove" on INTERNET — confirmed via a real Release build (BuildAndroidApk, not
-     the Development path): PlayerSettings' ForceInternetPermission is already false, but that
-     only stops UNITY from requesting it; ARCore's own bundled AAR manifest requests INTERNET
-     unconditionally (for Cloud Anchors / Depth API updates this app never uses), and Android's
-     manifest merger keeps a library's permission unless the app's own manifest explicitly
-     strips it. Confirmed present in the built APK (aapt dump / zip-extracted manifest) even
-     with ForceInternetPermission off — this line is what actually removes it, not that setting.
+  3. INTERNET — originally stripped via tools:node="remove" (confirmed via a real Release build,
+     BuildAndroidApk not the Development path: PlayerSettings' ForceInternetPermission was already
+     false, but that only stops UNITY from requesting it; ARCore's own bundled AAR manifest
+     requests INTERNET unconditionally for Cloud Anchors / Depth API updates this app never used,
+     and Android's manifest merger keeps a library's permission unless the app's own manifest
+     explicitly strips it — confirmed present in the built APK via aapt dump even with
+     ForceInternetPermission off). REINSTATED 2026-08-27 (Docs/GeospatialPlan.md §04 B1, §10) —
+     the Rev 4 Geospatial heritage layer needs it for ARCore's VPS lookups at the two route ends.
+     This is a deliberate, recorded scope reversal of "fully offline," not an oversight: the app's
+     stated scope becomes "offline navigation, connected heritage content at the two ends" — see
+     GeospatialPlan.md §04 B1 for the full reasoning, and update About/Settings copy to match
+     before shipping a build with this permission live. No code yet actually opens a socket:
+     GeospatialSession (AR/Geospatial/GeospatialSession.cs) is a documented no-op until the ARCore
+     Extensions package and a Cloud project both exist (Phase G) — this line just stops that future
+     work from being silently stripped back out by the merger the way ARCore's own AAR was.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
 
     <application>
