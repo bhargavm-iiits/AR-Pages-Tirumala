@@ -20,10 +20,6 @@ namespace AlipiriAR.UI
     /// </summary>
     public class ProgressScreen : UIScreen
     {
-        /// <summary>The commonly-documented total step count for the Alipiri Mettu stairway —
-        /// no per-step field exists in Docs, so Steps Climbed is always scaled from this.</summary>
-        private const int TotalStepsEstimate = 3550;
-
         private Image _ringFill;
         private TMP_Text _percentLabel;
         private TMP_Text _totalLabel;
@@ -221,7 +217,7 @@ namespace AlipiriAR.UI
             int etaMinutes = EtaEstimate.Minutes(remainingMeters);
             _etaLabel.text = Loc.T("progress.eta_minutes_format", etaMinutes);
 
-            int steps = Mathf.RoundToInt(TotalStepsEstimate * fraction);
+            int steps = Mathf.RoundToInt(db.Route.TotalStepsEstimate * fraction);
             _stepsLabel.text = "~" + steps.ToString("N0", CultureInfo.InvariantCulture);
 
             _percentLabel.text = Mathf.RoundToInt(fraction * 100f) + "%";

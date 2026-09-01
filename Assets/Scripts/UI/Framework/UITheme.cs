@@ -6,32 +6,46 @@ namespace AlipiriAR.UI
 {
     /// <summary>
     /// Single source of truth for every colour, spacing and radius value in the app.
-    /// Values are transcribed from the 11 mockup screens in Assets/Imgaes/ — see PLAN.md §05.
+    ///
+    /// Palette is "Stone &amp; Copper" — granite ground, copper accent in place of the original
+    /// tech-blue, warm ivory text instead of cool blue-white. Chosen over three other devotional
+    /// directions (Temple Gold, Dawn Saffron, Serene Lotus) explicitly for this app's outdoor
+    /// constraints: a dark ground stays legible against sunlight glare and reads consistently
+    /// behind the live AR camera passthrough regardless of what's behind it (sky, stone, crowd),
+    /// where a light/glass palette would wash out; dark UI is also the cheaper draw on OLED across
+    /// the 2-4 hour walk this app is used for (see the battery discussion in Docs/update1.md §10).
+    /// Every value below was previously transcribed from the 11 mockup screens in Assets/Imgaes/
+    /// (PLAN.md §05) with a tech-blue accent; only the hue story changed here, not the structure —
+    /// every screen keeps reading off these same names.
     /// </summary>
     public static class UITheme
     {
         // ---- Colour ----------------------------------------------------------
-        public static readonly Color Ground = FromHex("#0B1520");
-        public static readonly Color GroundDeep = FromHex("#111C27");
+        public static readonly Color Ground = FromHex("#211E1B");
+        public static readonly Color GroundDeep = FromHex("#17140F");
         /// <summary>Map basemap fill — a real terrain green instead of the navy graph-paper look
-        /// the demo basemap used before, since the user wants the map to read as land, not a grid.</summary>
+        /// the demo basemap used before, since the user wants the map to read as land, not a grid.
+        /// Left as true terrain green rather than warmed toward the rest of this palette — it
+        /// represents real vegetation on the map, not app chrome.</summary>
         public static readonly Color TerrainGreen = FromHex("#173A27");
-        public static readonly Color Surface = FromHex("#16202B");
-        public static readonly Color SurfaceRaised = FromHex("#1C2933");
-        public static readonly Color Rule = FromHex("#263340");
+        public static readonly Color Surface = FromHex("#2A2723");
+        public static readonly Color SurfaceRaised = FromHex("#3A3631");
+        public static readonly Color Rule = FromHex("#4A4038");
 
-        public static readonly Color TextPrimary = FromHex("#E7EEF2");
-        public static readonly Color TextSecondary = FromHex("#93A7B2");
-        public static readonly Color TextTertiary = FromHex("#5E7480");
+        public static readonly Color TextPrimary = FromHex("#EDE6DA");
+        public static readonly Color TextSecondary = FromHex("#9A9284");
+        public static readonly Color TextTertiary = FromHex("#6B655C");
 
-        public static readonly Color Accent = FromHex("#2F7BFF");
-        public static readonly Color AccentDim = FromHex("#1B3E73");
-        public static readonly Color Success = FromHex("#3DBE6E");
-        public static readonly Color SuccessDim = FromHex("#173A28");
-        public static readonly Color Warning = FromHex("#F0A824");
-        public static readonly Color WarningDim = FromHex("#43330E");
-        public static readonly Color Critical = FromHex("#E5573F");
-        public static readonly Color CriticalDim = FromHex("#3D1E17");
+        /// <summary>Copper — was tech-blue (#2F7BFF). The one hue swap that reads everywhere:
+        /// every "AR" pill, active tab, progress fill and primary button inherits it from here.</summary>
+        public static readonly Color Accent = FromHex("#B87333");
+        public static readonly Color AccentDim = FromHex("#3D2E1E");
+        public static readonly Color Success = FromHex("#7A9B68");
+        public static readonly Color SuccessDim = FromHex("#26301F");
+        public static readonly Color Warning = FromHex("#D4915A");
+        public static readonly Color WarningDim = FromHex("#3D2D1C");
+        public static readonly Color Critical = FromHex("#C1502E");
+        public static readonly Color CriticalDim = FromHex("#3A1F16");
         public static readonly Color Gold = FromHex("#C9A227");
 
         /// <summary>Camera-feed glass overlay used on the AR HUD cards (top pill, bottom stat card).</summary>

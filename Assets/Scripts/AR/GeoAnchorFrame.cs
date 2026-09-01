@@ -23,6 +23,15 @@ namespace AlipiriAR.AR
 
         public bool IsEstablished { get; private set; }
 
+        /// <summary>Clears IsEstablished without touching the stored origin/offset — the next
+        /// HybridLocalizationEngine.FeedFix re-establishes from scratch exactly as it does on
+        /// first launch. Call this whenever the AR session's own local space may have been torn
+        /// down and rebuilt (ARSessionBootstrapper's OnApplicationPause) — backgrounding
+        /// invalidates ARCore's tracking origin, but without this call IsEstablished stayed true
+        /// through a pause/resume, so every arrow placed after resuming was positioned against a
+        /// coordinate space that no longer existed (Docs/update1.md §02 F-08/Phase 0 item 4).</summary>
+        public void Invalidate() => IsEstablished = false;
+
         /// <summary>Called once, the first time a confident GPS+compass fix and the AR camera's
         /// own tracked pose are both available — anchors the two coordinate spaces together.</summary>
         public void Establish(double lat, double lon, float compassHeadingDeg, Vector3 arCameraPosition, float arCameraYawDeg)

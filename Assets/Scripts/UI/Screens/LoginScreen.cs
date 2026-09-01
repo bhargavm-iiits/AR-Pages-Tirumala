@@ -39,7 +39,7 @@ namespace AlipiriAR.UI
         protected override void Build(RectTransform root)
         {
             // 1. Deep Space Ground Background with subtle ambient gradient
-            var bg = UIFactory.Panel(root, UITheme.FromHex("#070E18"));
+            var bg = UIFactory.Panel(root, UITheme.GroundDeep);
             bg.gameObject.name = "LoginBackground";
 
             // Ambient Gold Top Glow
@@ -60,7 +60,7 @@ namespace AlipiriAR.UI
             UIFactory.SetSize(scrollArea, 920f, 1580f);
 
             // Glassmorphic Outer Border & Surface
-            var cardBg = UIFactory.Panel(scrollArea, UITheme.FromHex("#0F1A28"), 36f);
+            var cardBg = UIFactory.Panel(scrollArea, UITheme.Surface, 36f);
             cardBg.gameObject.name = "LoginGlassCard";
 
             var vlg = scrollArea.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -119,14 +119,14 @@ namespace AlipiriAR.UI
 
             var outerRing = iconCircle.gameObject.AddComponent<Image>();
             outerRing.sprite = UIShapes.Circle();
-            outerRing.color = UITheme.FromHex("#1B2A3D");
+            outerRing.color = UITheme.Rule;
 
             var iconInner = UIFactory.CreateRect("EmblemInner", iconCircle);
             iconInner.anchorMin = iconInner.anchorMax = new Vector2(0.5f, 0.5f);
             UIFactory.SetSize(iconInner, 92f, 92f);
             var innerImg = iconInner.gameObject.AddComponent<Image>();
             innerImg.sprite = UIShapes.Circle();
-            innerImg.color = UITheme.FromHex("#121D2B");
+            innerImg.color = UITheme.GroundDeep;
 
             UIFactory.CenteredIcon(iconInner, IconType.Gopuram, 54f, UITheme.Gold);
 
@@ -220,14 +220,14 @@ namespace AlipiriAR.UI
             // Decrement Button (-)
             var minusRt = UIFactory.CreateRect("MinusContainer", rowRt);
             minusRt.gameObject.AddComponent<LayoutElement>().preferredWidth = 96f;
-            var minusBtn = UIFactory.CircleButton(minusRt, 90f, () => StepAge(-1), UITheme.FromHex("#162436"));
+            var minusBtn = UIFactory.CircleButton(minusRt, 90f, () => StepAge(-1), UITheme.SurfaceRaised);
             UIFactory.CenteredIcon(minusBtn.transform, IconType.Minus, 36f, UITheme.TextPrimary);
 
             // Central Age Display Card
             var ageDisplayCard = UIFactory.CreateRect("AgeCard", rowRt);
             ageDisplayCard.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            var cardImg = UIFactory.Panel(ageDisplayCard, UITheme.FromHex("#152233"), 20f);
+            var cardImg = UIFactory.Panel(ageDisplayCard, UITheme.SurfaceRaised, 20f);
             cardImg.gameObject.name = "AgeCardBg";
 
             var cardVlg = ageDisplayCard.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -249,7 +249,7 @@ namespace AlipiriAR.UI
             // Increment Button (+)
             var plusRt = UIFactory.CreateRect("PlusContainer", rowRt);
             plusRt.gameObject.AddComponent<LayoutElement>().preferredWidth = 96f;
-            var plusBtn = UIFactory.CircleButton(plusRt, 90f, () => StepAge(1), UITheme.FromHex("#162436"));
+            var plusBtn = UIFactory.CircleButton(plusRt, 90f, () => StepAge(1), UITheme.SurfaceRaised);
             UIFactory.CenteredIcon(plusBtn.transform, IconType.Plus, 36f, UITheme.TextPrimary);
         }
 
@@ -326,7 +326,7 @@ namespace AlipiriAR.UI
         private (Image bg, Button btn, TMP_Text label, Image checkIcon) CreateLanguageChip(
             Transform parent, string title, bool selected)
         {
-            var pillImg = UIFactory.Pill(parent, selected ? UITheme.Accent : UITheme.FromHex("#152233"));
+            var pillImg = UIFactory.Pill(parent, selected ? UITheme.Accent : UITheme.SurfaceRaised);
             pillImg.gameObject.name = $"Chip_{title}";
             var btn = pillImg.gameObject.AddComponent<Button>();
             btn.targetGraphic = pillImg;
@@ -362,7 +362,7 @@ namespace AlipiriAR.UI
             foreach (var kv in _chipBackgrounds)
             {
                 bool selected = kv.Key == _selectedLocale;
-                kv.Value.color = selected ? UITheme.Accent : UITheme.FromHex("#152233");
+                kv.Value.color = selected ? UITheme.Accent : UITheme.SurfaceRaised;
 
                 if (_chipLabels.TryGetValue(kv.Key, out var label))
                 {
@@ -382,7 +382,7 @@ namespace AlipiriAR.UI
             _errorBoxRt = UIFactory.CreateRect("ErrorBox", parent);
             _errorBoxRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 50f;
 
-            var bg = UIFactory.Panel(_errorBoxRt, UITheme.FromHex("#3B1B15"), 16f);
+            var bg = UIFactory.Panel(_errorBoxRt, UITheme.CriticalDim, 16f);
             bg.gameObject.name = "ErrorBg";
 
             var hlg = _errorBoxRt.gameObject.AddComponent<HorizontalLayoutGroup>();

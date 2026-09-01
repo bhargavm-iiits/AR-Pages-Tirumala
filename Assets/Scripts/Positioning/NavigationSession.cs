@@ -10,9 +10,16 @@ namespace AlipiriAR.Positioning
 
     /// <summary>
     /// Owns the whole live-walking session lifecycle (PLAN.md §06/§09) — starts/stops
-    /// LocationProvider and feeds RouteProgressTracker + LandmarkTriggerService from its fixes.
-    /// One shared instance (via Resolve()) so Map/Progress/Landmarks/AR Navigation all read the
-    /// same numbers and can never disagree.
+    /// LocationProvider and the fused position pipeline together, and feeds
+    /// LandmarkTriggerService from every fused update. One shared instance (via Resolve()) so
+    /// Map/Progress/Landmarks/AR Navigation all read the same numbers and can never disagree.
+    ///
+    /// Docs/update1.md §03/Phase 3 item 8: this class now owns a PositionFusionService instead
+    /// of feeding RouteProgressTracker directly from raw GPS. GpsPositionSource (inside Fusion)
+    /// subscribes to the same Location.OnFixFiltered event this class used to handle itself —
+    /// starting/stopping Fusion in lockstep with Location achieves the same "only live while
+    /// Active" behaviour the old State-check inside HandleFix did, just structurally instead of
+    /// per-callback.
     ///
     /// Start() is called from exactly one place: the AR screen's NavigationDrawer "Start
     /// Navigation" row. Both the AR and Map screens used to call Start() themselves the instant
@@ -24,26 +31,43 @@ namespace AlipiriAR.Positioning
     /// </summary>
     public class NavigationSession
     {
+        /// <summary>Minimum real time between journal writes while Active — §04 Phase 4 item 3
+        /// says "every 30 s and on pause"; the periodic half is a throttle on HandleProgressUpdated
+        /// rather than its own timer, since that already fires on every fused update.</summary>
+        private const float JournalSaveIntervalSeconds = 30f;
+
         public NavigationState State { get; private set; } = NavigationState.Idle;
         public LocationProvider Location { get; }
         public RouteProgressTracker Progress { get; }
         public LandmarkTriggerService Triggers { get; }
+        public PositionFusionService Fusion { get; }
+        public NavigationConfidenceMachine Confidence { get; } = new();
 
         public event Action<NavigationState> OnStateChanged;
 
-        public NavigationSession(LocationProvider location, RouteProgressTracker progress, LandmarkTriggerService triggers)
+        private readonly SessionJournal _journal = new();
+        private double _lastJournalSaveTime = double.NegativeInfinity;
+
+        public NavigationSession(LocationProvider location, RouteProgressTracker progress, LandmarkTriggerService triggers, PositionFusionService fusion)
         {
             Location = location;
             Progress = progress;
             Triggers = triggers;
-            Location.OnFixFiltered += HandleFix;
+            Fusion = fusion;
+            Progress.OnUpdated += HandleProgressUpdated;
         }
 
         public void Start()
         {
             if (State == NavigationState.Active) return;
             Triggers.ResetSession();
+            Confidence.MarkReady();
             Location.Play();
+            Fusion.Start();
+            // §00/Phase 7 item 5: battery is the binding constraint on a 2-4 hour climb: AR
+            // camera + VIO + screen is roughly 15-25%/hour. Nothing in the project set this
+            // before, so the app ran at whatever the platform's default/vSync rate was.
+            UnityEngine.Application.targetFrameRate = 30;
             SetState(NavigationState.Active);
         }
 
@@ -51,6 +75,8 @@ namespace AlipiriAR.Positioning
         {
             if (State != NavigationState.Active) return;
             Location.Pause();
+            Fusion.Stop();
+            SaveJournal();
             SetState(NavigationState.Paused);
         }
 
@@ -58,24 +84,40 @@ namespace AlipiriAR.Positioning
         {
             if (State != NavigationState.Paused) return;
             Location.Play();
+            Fusion.Start();
             SetState(NavigationState.Active);
         }
 
         public void End()
         {
             Location.Pause();
+            Fusion.Stop();
+            SaveJournal();
             SetState(NavigationState.Ended);
         }
 
-        private void HandleFix(double lat, double lon, float headingDeg, float accuracyMeters)
+        /// <summary>Fires on every fused position update regardless of which source produced it
+        /// (GPS, step counter, barometer) — landmark triggers now check against the same fused
+        /// position everything else reads, not just raw GPS fixes.</summary>
+        private void HandleProgressUpdated()
         {
             if (State != NavigationState.Active) return;
-            // TraceReplaySource's fixes are exact by construction — RouteProgressTracker's
-            // jitter-absorption band exists for real GPS noise, and would only turn the desk-test
-            // walker's smooth progress into chunky multi-metre jumps if applied here too.
-            bool trustExactly = Location.Mode == LocationSourceMode.TraceReplay;
-            Progress.Feed(lat, lon, Time.unscaledTimeAsDouble, accuracyMeters, trustExactly);
-            Triggers.Feed(lat, lon);
+
+            Triggers.Feed(Progress.Latitude, Progress.Longitude);
+
+            double now = UnityEngine.Time.unscaledTime;
+            Confidence.Feed(Fusion.Estimator.SigmaMeters, Progress.LateralDistanceMeters, now);
+
+            if (now - _lastJournalSaveTime >= JournalSaveIntervalSeconds)
+            {
+                SaveJournal();
+                _lastJournalSaveTime = now;
+            }
+        }
+
+        private void SaveJournal()
+        {
+            _journal.Save(Fusion.Estimator.S, Fusion.Estimator.SigmaMeters, Fusion.Estimator.BarometricBiasMeters, Confidence.Confidence);
         }
 
         private void SetState(NavigationState state)
@@ -100,8 +142,9 @@ namespace AlipiriAR.Positioning
                 : LocationProvider.CreateDeviceGps();
             var progress = new RouteProgressTracker(db.Route);
             var triggers = new LandmarkTriggerService(db.Landmarks, VisitedStore.Resolve());
+            var fusion = new PositionFusionService(db.Route, progress, location);
 
-            var session = new NavigationSession(location, progress, triggers);
+            var session = new NavigationSession(location, progress, triggers, fusion);
             ServiceLocator.Register(session);
             return session;
         }

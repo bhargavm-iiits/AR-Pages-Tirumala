@@ -117,6 +117,12 @@ namespace AlipiriAR.UI
 
             _bootstrapper.OnStateChanged += OnArStateChanged;
             OnArStateChanged(_bootstrapper.State);
+
+            // Backgrounding can invalidate ARCore's tracking origin while GeoAnchorFrame.
+            // IsEstablished stays true with no signal saying so (Docs/update1.md §02 F-08) —
+            // invalidate on every pause/focus-loss so the next fix re-seeds from scratch
+            // instead of placing arrows against a coordinate space that no longer exists.
+            _bootstrapper.OnAppPaused += () => _localization?.Frame.Invalidate();
         }
 
         protected override void OnShown()
@@ -525,9 +531,12 @@ namespace AlipiriAR.UI
 
         private void RefreshStepBadge()
         {
-            const int totalSteps = 3550;
+            // Shared with ProgressScreen/PoiMarkerLayer via RouteResult.TotalStepsEstimate —
+            // see its doc comment (Docs/update1.md §02 F-05: this used to be an independently
+            // hardcoded 3550 literal here, duplicated in the other two screens too).
+            int totalSteps = _db.Route.TotalStepsEstimate;
             int steps = Mathf.RoundToInt(totalSteps * _session.Progress.FractionComplete);
-            _stepBadgeLabel.text = Loc.T("nav.steps_label") + "\n" + steps.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            _stepBadgeLabel.text = Loc.T("nav.steps_label") + "\n~" + steps.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         // ---------------------------------------------------------------

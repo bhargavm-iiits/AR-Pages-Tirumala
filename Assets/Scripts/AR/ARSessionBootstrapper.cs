@@ -44,6 +44,13 @@ namespace AlipiriAR.AR
 
         public event Action<ArAvailabilityState> OnStateChanged;
 
+        /// <summary>Fires on OnApplicationPause(true) and OnApplicationFocus(false) — either can
+        /// precede the other on Android depending on OEM, so both are wired to the same handler
+        /// rather than picking one (Docs/update1.md §02 F-08/Phase 0 item 4). Subscribers should
+        /// invalidate anything that assumes ARCore's tracking origin is still the one from before
+        /// the pause; it is not guaranteed to be.</summary>
+        public event Action OnAppPaused;
+
         public static ARSessionBootstrapper Create()
         {
             var go = new GameObject("~ARSessionBootstrapper");
@@ -148,6 +155,30 @@ namespace AlipiriAR.AR
         {
             State = state;
             OnStateChanged?.Invoke(state);
+        }
+
+        private bool _pauseNotified;
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus) NotifyPausedOnce();
+            else _pauseNotified = false; // resumed — arm the guard for the next backgrounding
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus) NotifyPausedOnce();
+            else _pauseNotified = false;
+        }
+
+        /// <summary>Pause and focus-loss can both fire for the same backgrounding event (order
+        /// and presence vary by OEM) — guarded so subscribers see exactly one notification per
+        /// actual backgrounding, not up to two.</summary>
+        private void NotifyPausedOnce()
+        {
+            if (_pauseNotified) return;
+            _pauseNotified = true;
+            OnAppPaused?.Invoke();
         }
 
         private void OnDestroy()

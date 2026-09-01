@@ -54,11 +54,11 @@ namespace AlipiriAR.Map
         private const float CalloutWidth = 176f;
         private const float CalloutImageSize = 96f;
 
-        /// <summary>Total steps the whole route is estimated at (PLAN.md §03 — no per-step survey
-        /// data exists, only a labelled estimate) — the same constant ProgressScreen/
-        /// ARNavigationScreen already use, duplicated rather than shared since none of those
-        /// classes expose it as a public constant today.</summary>
-        private const int TotalStepsEstimate = 3550;
+        /// <summary>Total steps the whole route is estimated at — set from RouteResult.
+        /// TotalStepsEstimate at construction (Docs/update1.md §02 F-05: this used to be its own
+        /// independently-hardcoded 3550 literal, duplicated across this file, ProgressScreen and
+        /// ARNavigationScreen, with no shared source of truth).</summary>
+        private int _totalStepsEstimate;
 
         /// <summary>Standard short epithet for each of the ten avatars of Vishnu — common
         /// knowledge across Vaishnava tradition, keyed by this dataset's exact landmark names
@@ -100,16 +100,17 @@ namespace AlipiriAR.Map
         private double _totalRouteDistanceMeters;
         private int _highlightCount;
 
-        public static PoiMarkerLayer Create(MapView map, IReadOnlyList<LandmarkData> landmarks, double totalRouteDistanceMeters, Func<RectTransform> overlayContainerProvider)
+        public static PoiMarkerLayer Create(MapView map, IReadOnlyList<LandmarkData> landmarks, double totalRouteDistanceMeters, int totalStepsEstimate, Func<RectTransform> overlayContainerProvider)
         {
             var go = new GameObject("PoiMarkerLayer", typeof(RectTransform));
             var layer = go.AddComponent<PoiMarkerLayer>();
-            layer.Build(map, landmarks, totalRouteDistanceMeters, overlayContainerProvider);
+            layer.Build(map, landmarks, totalRouteDistanceMeters, totalStepsEstimate, overlayContainerProvider);
             return layer;
         }
 
-        private void Build(MapView map, IReadOnlyList<LandmarkData> landmarks, double totalRouteDistanceMeters, Func<RectTransform> overlayContainerProvider)
+        private void Build(MapView map, IReadOnlyList<LandmarkData> landmarks, double totalRouteDistanceMeters, int totalStepsEstimate, Func<RectTransform> overlayContainerProvider)
         {
+            _totalStepsEstimate = totalStepsEstimate;
             _map = map;
             _totalRouteDistanceMeters = totalRouteDistanceMeters;
             _overlayContainerProvider = overlayContainerProvider;
@@ -320,7 +321,7 @@ namespace AlipiriAR.Map
             nameRt.gameObject.AddComponent<LayoutElement>().preferredHeight = hasSubtitle ? 56f : 30f;
 
             int stepNumber = _totalRouteDistanceMeters > 0
-                ? Mathf.RoundToInt(TotalStepsEstimate * (float)(landmark.CumulativeDistanceMeters / _totalRouteDistanceMeters))
+                ? Mathf.RoundToInt(_totalStepsEstimate * (float)(landmark.CumulativeDistanceMeters / _totalRouteDistanceMeters))
                 : 0;
 
             var stepRt = UIFactory.CreateRect("Step", calloutRt);
