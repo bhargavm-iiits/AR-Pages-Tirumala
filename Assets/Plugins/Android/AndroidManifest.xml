@@ -40,11 +40,25 @@
      GeospatialSession (AR/Geospatial/GeospatialSession.cs) is a documented no-op until the ARCore
      Extensions package and a Cloud project both exist (Phase G) — this line just stops that future
      work from being silently stripped back out by the merger the way ARCore's own AAR was.
+
+  4. ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION — same class of bug as the CAMERA note above
+     (a permission must be DECLARED here before UnityEngine.Android.Permission.RequestUserPermission
+     can ever succeed for it), found the same way: absent from this file, and nothing else in the
+     project declares it. LocationProvider's real-device GPS path requests FineLocation at
+     runtime (Docs/update1.md — that whole path is explicitly "device-unverified"), which without
+     this declaration would fail identically to how CAMERA did before note 1 above was added.
+  5. ACTIVITY_RECOGNITION — mandatory on API 29+ to read TYPE_STEP_COUNTER
+     (Positioning/Sources/StepCounterSource.cs, Docs/update1.md Phase 3 item 3). Requested at
+     runtime in the same class; minSdk here is 26, below the API level where this is required, so
+     the runtime request/declaration pair still needs to exist for devices that are ≥29.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
 
     <application>

@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using AlipiriAR.UI;
 using AlipiriAR.Utilities;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace AlipiriAR.Map
 {
     /// <summary>
-    /// Real offline OpenStreetMap raster tiles, baked once into
-    /// StreamingAssets/Tiles/{z}/{x}/{y}.png for the Alipiri Mettu → Tirumala corridor (ODbL —
-    /// attribution is MapScreen's existing "map.attribution" label, unchanged by this). Drawn
-    /// as a sibling directly above DemoBasemap, which stays in place underneath as the fallback
-    /// ground: any tile outside the baked bounding box, or one of the rare fetch failures, just
-    /// shows the green terrain through instead of a hole.
+    /// Real map raster tiles, drawn as a sibling directly above DemoBasemap, which stays in
+    /// place underneath as the fallback ground. Two sources, tried in order per tile:
+    /// (1) offline tiles baked once into StreamingAssets/Tiles/{z}/{x}/{y}.png for the Alipiri
+    /// Mettu → Tirumala corridor (ODbL — attribution is MapScreen's existing "map.attribution"
+    /// label, unchanged by this); (2) GoogleTileSession's live Map Tiles API fetch, for
+    /// wherever the offline bake doesn't cover or hasn't been done yet. Only if both miss —
+    /// no network and outside the baked AOI — does the green DemoBasemap terrain show through.
     ///
     /// Each tile is positioned by projecting its own NW/SE corner lon/lat through
     /// MapView.WorldPositionRelative — the same zoom-18 canonical pixel space every other layer
@@ -115,10 +117,23 @@ namespace AlipiriAR.Map
             _inFlight.Add(key);
             byte[] bytes = null;
             yield return StreamingAssetsLoader.LoadBytes($"Tiles/{key.z}/{key.x}/{key.y}.png", b => bytes = b);
+
+            // Missing baked tile — outside the baked AOI, or one of the rare bake failures.
+            // Fall back to a live fetch from Google's Map Tiles API (GoogleTileSession) before
+            // giving up; if that's unavailable too (no key, no network, key not authorized),
+            // DemoBasemap still shows through underneath exactly as before this fallback existed.
+            if (bytes == null || bytes.Length == 0)
+            {
+                yield return GoogleTileSession.EnsureSession();
+                if (this == null) yield break; // screen closed while the session request was in flight
+                if (GoogleTileSession.IsAvailable)
+                {
+                    yield return FetchOnlineTile(key, b => bytes = b);
+                }
+            }
+
             _inFlight.Remove(key);
 
-            // Missing tile — outside the baked AOI, or one of the rare bake failures. DemoBasemap
-            // shows through underneath; nothing to do here.
             if (bytes == null || bytes.Length == 0) yield break;
             if (this == null) yield break; // screen closed while the request was in flight
 
@@ -135,6 +150,23 @@ namespace AlipiriAR.Map
             // correct, since its footprint comes from its own lon/lat corners, not from "being
             // the current band". RefreshTiles will drop it on the next pan/zoom if it's stale.
             PlaceTile(key, tex);
+        }
+
+        /// <summary>Raw-bytes fetch, same as StreamingAssetsLoader.LoadBytes returns for the
+        /// offline path — LoadTile decodes both through the one ImageConversion.LoadImage call
+        /// above, rather than branching the texture-creation code path by source.</summary>
+        private static IEnumerator FetchOnlineTile((int z, int x, int y) key, System.Action<byte[]> onLoaded)
+        {
+            using var request = UnityWebRequest.Get(GoogleTileSession.TileUrl(key.z, key.x, key.y));
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                onLoaded(null);
+                yield break;
+            }
+
+            onLoaded(request.downloadHandler.data);
         }
 
         private void CacheTexture((int z, int x, int y) key, Texture2D tex)

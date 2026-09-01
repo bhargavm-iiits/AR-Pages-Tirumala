@@ -31,6 +31,11 @@ namespace AlipiriAR.Core
 
         private static IEnumerator InitializeRoutine()
         {
+            // Registered first and cheaply (no network wait here — the probe loop runs in the
+            // background) so it's available to GoogleTileSession/TileBasemap the moment the Map
+            // tab can possibly open (Docs/update1.md §02 Phase 2 items 4-5).
+            ServiceLocator.Register(ConnectivityService.Create());
+
             var localization = new LocalizationService();
             ServiceLocator.Register(localization);
 

@@ -71,3 +71,9 @@ Thumbs.db
 # Local Excel export (regenerated at runtime, contains personal data)
 Assets/login.xlsx
 Assets/login.xlsx.meta
+
+# Live Google Maps Tiles API key — restricted per Android package + SHA-1 in Cloud Console
+# (see GoogleTileSession's class doc), but still not something to commit. Ship
+# map_api_key.example.txt instead; each dev/CI machine drops its own real key in locally.
+Assets/StreamingAssets/map_api_key.txt
+Assets/StreamingAssets/map_api_key.txt.meta

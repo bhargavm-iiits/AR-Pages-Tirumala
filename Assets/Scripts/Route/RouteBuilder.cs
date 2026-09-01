@@ -10,6 +10,17 @@ namespace AlipiriAR.Route
         public readonly List<string> RejectedWayIds = new();
         public double TotalDistanceMeters;
         public double BridgedDistanceMeters;
+
+        /// <summary>The commonly-documented total stair-step count for the Alipiri Mettu
+        /// stairway — no per-step survey data exists yet (Docs/update1.md §01/§07: schema v2's
+        /// route.json totalStairSteps field, populated by the Phase 1 field tally). One shared
+        /// value instead of the same literal duplicated independently in ARNavigationScreen,
+        /// ProgressScreen and PoiMarkerLayer (Docs/update1.md §02 F-05) — those three used to
+        /// each hardcode 3550 themselves, which meant updating one on a future data refresh
+        /// could silently leave the other two stale. Still an estimate, not a measurement —
+        /// every display of it should keep an honest "~" prefix until this is replaced by a real
+        /// per-segment tally.</summary>
+        public int TotalStepsEstimate = 3550;
     }
 
     /// <summary>

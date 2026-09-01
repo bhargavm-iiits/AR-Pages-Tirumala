@@ -4,43 +4,39 @@ using AlipiriAR.Utilities;
 
 namespace AlipiriAR.Positioning
 {
-    /// <summary>Snaps LocationProvider's filtered fix onto the route polyline and derives every
-    /// number the four data screens show — completed/remaining distance, %, ETA — from that one
-    /// scalar (PLAN.md §08 step 3/4, §09). Nothing computes its own version of "how far along
-    /// the route am I" anywhere else. Snapping is safe here specifically because the stairway is
-    /// a single corridor with no alternative path (PLAN.md §08 step 3).</summary>
+    /// <summary>Derives every number the four data screens show — completed/remaining distance,
+    /// %, ETA — from one fused along-track scalar (PLAN.md §08 step 3/4, §09; Docs/update1.md
+    /// §03 Phase 3 item 7). Nothing computes its own version of "how far along the route am I"
+    /// anywhere else.
+    ///
+    /// Public surface is unchanged from before the Phase 3 fusion rewrite — every downstream
+    /// consumer (Map/Progress/Landmarks/AR screens) still reads CumulativeDistanceMeters,
+    /// Latitude/Longitude etc. exactly as before. What changed is who computes the input: Feed
+    /// used to project a raw GPS fix itself; it now takes an already-fused s/σ from
+    /// PositionFusionService, which folds in GPS, step counter and barometer, and derives
+    /// Latitude/Longitude by walking that s back onto the polyline (PolylineUtility.
+    /// PointAtDistance) instead of snapping a fix onto it.</summary>
     public class RouteProgressTracker
     {
-        /// <summary>Floor on the jitter band applied symmetrically in both directions (see Feed)
-        /// — below this, a fix that snaps behind OR ahead of the tracked high-water mark is
-        /// ordinary GPS noise and gets absorbed, not treated as the walker moving. Originally
-        /// backward-only: found on a real device that closest-point snapping with no floor made
-        /// CumulativeDistanceMeters visibly dip backward frame to frame, and since
-        /// DynamicArrowManager anchors the whole chevron trail to this value, that dip showed up
-        /// as the arrows themselves jumping backward. That fix left the forward side completely
-        /// unguarded, though: a Math.Max ratchets the high-water mark up on ANY forward-snapping
-        /// fix, no matter how small, so ordinary noise while standing still — a fix snapping 1-3m
-        /// further along the corridor purely by chance — got locked in permanently, one small
-        /// step at a time, forever. That is what "the navigation updates on its own, before
-        /// anyone's moved" actually was: not simulated movement, a one-directional ratchet with
-        /// no forward floor. See JitterToleranceMeters below for the real (accuracy-scaled) value
-        /// used at runtime — this constant is only its minimum.</summary>
-        private const double MinJitterToleranceMeters = 5.0;
-
-        /// <summary>Reported GPS accuracy IS the fix's own noise estimate — scaling the jitter
-        /// band by it (floor MinJitterToleranceMeters, since a suspiciously confident fix
-        /// shouldn't get a zero tolerance either) means a degraded fix indoors, which might report
-        /// 20-30m accuracy, doesn't masquerade as three or four "steps" of real progress the
-        /// moment GPS reacquires — the corridor-snapped position only advances once a fix is
-        /// further from the tracked point than its own uncertainty already explains.</summary>
-        private static double JitterToleranceMeters(float accuracyMeters) => Math.Max(MinJitterToleranceMeters, accuracyMeters);
+        /// <summary>Small floor purely against floating-point/near-zero-sigma edge cases, not a
+        /// real accuracy judgement the way the old GPS-accuracy floor was — the fused sigma
+        /// PositionFusionService supplies already reflects genuine estimator uncertainty (built
+        /// from each source's own measurement variance), so a second independent floor on top of
+        /// it would just double-count caution the estimator already applied.</summary>
+        private const double MinToleranceMeters = 0.1;
 
         private readonly RouteResult _route;
         private readonly EtaEstimator _eta = new();
         private double _highWaterMarkMeters;
 
         public double CumulativeDistanceMeters { get; private set; }
+
+        /// <summary>Diagnostic only — how far the most recent raw GPS fix sat from the corridor
+        /// before fusion, not derived from CumulativeDistanceMeters. Set by
+        /// PositionFusionService via SetLateralDiagnostic; DebugOverlay/GpsTraceRecorder read it
+        /// exactly as they did before this class's Feed signature changed.</summary>
         public double LateralDistanceMeters { get; private set; }
+
         public double Latitude { get; private set; }
         public double Longitude { get; private set; }
 
@@ -55,33 +51,32 @@ namespace AlipiriAR.Positioning
             _route = route;
         }
 
-        /// <summary>trustExactly bypasses the jitter band entirely — set for TraceReplaySource's
-        /// fixes (NavigationSession.HandleFix), which are exact/noise-free by construction, so
-        /// there is no jitter to guard against and a 5m+ floor would only make the desk-testable
-        /// walker (PLAN.md §08) advance in chunky multi-metre jumps instead of the smooth
-        /// per-fix progress it's meant to simulate. Real device GPS always goes through the full
-        /// accuracy-scaled tolerance below.</summary>
-        public void Feed(double rawLat, double rawLon, double timestamp, float accuracyMeters, bool trustExactly = false)
+        /// <summary>Feeds one fused position update. tolerance is sigma itself (floored at
+        /// MinToleranceMeters) rather than a fixed accuracy-scaled band — a source that has
+        /// genuinely converged (e.g. a re-anchor fix, sigma ≈ 2 m) is allowed to move the
+        /// high-water mark on a small delta; a source still uncertain (fresh CoarseAcquire,
+        /// sigma ≈ 50 m) is not. Same symmetric-band reasoning as before applies either way: a
+        /// fix within tolerance of the tracked mark, in EITHER direction, is treated as noise
+        /// and absorbed rather than as the walker moving forward or back.</summary>
+        public void Feed(double fusedS, double sigmaMeters, double timestamp)
         {
-            var projection = PolylineUtility.ClosestPoint(_route.Waypoints, rawLat, rawLon);
-            double tolerance = trustExactly ? 0.0 : JitterToleranceMeters(accuracyMeters);
-            double delta = projection.CumulativeDistanceMeters - _highWaterMarkMeters;
+            double clampedS = Math.Clamp(fusedS, 0.0, TotalDistanceMeters);
+            double tolerance = Math.Max(MinToleranceMeters, sigmaMeters);
+            double delta = clampedS - _highWaterMarkMeters;
 
-            // Symmetric band: a fix within `tolerance` of the tracked mark, in EITHER direction,
-            // is ordinary noise and changes nothing. Only a delta that exceeds the fix's own
-            // reported uncertainty counts as the walker actually having moved — forward or back.
             if (Math.Abs(delta) > tolerance)
-                _highWaterMarkMeters = projection.CumulativeDistanceMeters;
+                _highWaterMarkMeters = clampedS;
 
             CumulativeDistanceMeters = _highWaterMarkMeters;
 
-            LateralDistanceMeters = projection.LateralDistanceMeters;
-            Latitude = projection.Latitude;
-            Longitude = projection.Longitude;
+            (Latitude, Longitude) = PolylineUtility.PointAtDistance(_route.Waypoints, CumulativeDistanceMeters);
 
             _eta.Feed(CumulativeDistanceMeters, timestamp);
             OnUpdated?.Invoke();
         }
+
+        /// <summary>See LateralDistanceMeters — purely a diagnostic side-channel, does not affect CumulativeDistanceMeters or fire OnUpdated.</summary>
+        public void SetLateralDiagnostic(double lateralMeters) => LateralDistanceMeters = lateralMeters;
 
         public int EtaMinutes() => _eta.EstimateMinutes(RemainingDistanceMeters);
     }
