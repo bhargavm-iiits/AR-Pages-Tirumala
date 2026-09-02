@@ -205,8 +205,32 @@ namespace AlipiriAR.Map
             var raw = rt.gameObject.AddComponent<RawImage>();
             raw.texture = tex;
             raw.raycastTarget = false;
+            raw.color = new Color(1f, 1f, 1f, 0f);
+            StartCoroutine(FadeInTile(raw));
 
             _liveTiles[key] = raw;
+        }
+
+        private static IEnumerator FadeInTile(RawImage raw)
+        {
+            const float duration = 0.18f;
+            if (UITween.ReducedMotion)
+            {
+                raw.color = Color.white;
+                yield break;
+            }
+
+            float t = 0f;
+            while (t < duration)
+            {
+                if (raw == null) yield break;
+                t += Time.unscaledDeltaTime;
+                var c = raw.color;
+                c.a = Mathf.Clamp01(t / duration);
+                raw.color = c;
+                yield return null;
+            }
+            if (raw != null) raw.color = Color.white;
         }
     }
 }

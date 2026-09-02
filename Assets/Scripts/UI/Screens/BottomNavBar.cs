@@ -13,8 +13,9 @@ namespace AlipiriAR.UI
     {
         public const float Height = 150f;
 
-        private readonly List<(Button button, Image icon, TMP_Text label)> _tabs = new();
+        private readonly List<(Button button, Image icon, TMP_Text label, RectTransform rect)> _tabs = new();
         private int _activeIndex = -1;
+        private RectTransform _indicator;
 
         public static BottomNavBar Create(RectTransform parent, (string labelKey, IconType icon)[] tabs, Action<int> onSelected)
         {
@@ -29,6 +30,24 @@ namespace AlipiriAR.UI
             bg.color = UITheme.Surface;
 
             var nav = rt.gameObject.AddComponent<BottomNavBar>();
+
+            // Sliding indicator — a thin bar under the active tab that travels between tabs on
+            // SetActive rather than the icon/label colour just snapping. Built before the tabs
+            // (same parent, drawn first) so the tab buttons' own raycast targets stay on top.
+            var indicatorRt = UIFactory.CreateRect("Indicator", rt);
+            indicatorRt.anchorMin = indicatorRt.anchorMax = new Vector2(0f, 0f);
+            indicatorRt.pivot = new Vector2(0.5f, 0f);
+            indicatorRt.sizeDelta = new Vector2(32f, 4f);
+            indicatorRt.anchoredPosition = new Vector2(0f, 6f);
+            var indicatorImg = indicatorRt.gameObject.AddComponent<Image>();
+            indicatorImg.sprite = UIShapes.RoundedRect(2);
+            indicatorImg.type = Image.Type.Sliced;
+            indicatorImg.color = UITheme.Accent;
+            // Without this, HorizontalLayoutGroup below treats the indicator as a 6th tab slot
+            // and squeezes the 5 real tabs to make room for it.
+            indicatorRt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            indicatorRt.gameObject.SetActive(false);
+            nav._indicator = indicatorRt;
 
             var hlg = rt.gameObject.AddComponent<HorizontalLayoutGroup>();
             hlg.childForceExpandWidth = true;
@@ -77,7 +96,7 @@ namespace AlipiriAR.UI
                     labelKey);
 
                 tabBtn.onClick.AddListener(() => onSelected(index));
-                nav._tabs.Add((tabBtn, iconImg, (TMP_Text)label.GetComponent<TextMeshProUGUI>()));
+                nav._tabs.Add((tabBtn, iconImg, (TMP_Text)label.GetComponent<TextMeshProUGUI>(), tabRt));
             }
 
             return nav;
@@ -86,6 +105,7 @@ namespace AlipiriAR.UI
         public void SetActive(int index)
         {
             if (_activeIndex == index) return;
+            bool firstShow = _activeIndex < 0;
             _activeIndex = index;
 
             for (int i = 0; i < _tabs.Count; i++)
@@ -94,6 +114,33 @@ namespace AlipiriAR.UI
                 _tabs[i].icon.color = color;
                 _tabs[i].label.color = color;
             }
+
+            MoveIndicatorTo(index, animate: !firstShow);
+        }
+
+        /// <summary>Slides the underline to sit centred under the active tab. Reads the tab's own
+        /// anchoredPosition/width rather than assuming an even 1/N split, so it stays correct if
+        /// the tab count or spacing ever changes. Snaps (no slide) on the very first SetActive —
+        /// nothing to travel FROM yet, and a slide-in from x=0 on cold start would look like a
+        /// stray animation rather than a transition.</summary>
+        private void MoveIndicatorTo(int index, bool animate)
+        {
+            if (_indicator == null || index < 0 || index >= _tabs.Count) return;
+            var tabRect = _tabs[index].rect;
+            float targetX = tabRect.anchoredPosition.x + tabRect.rect.width * 0.5f;
+
+            _indicator.gameObject.SetActive(true);
+            if (!animate || UITween.ReducedMotion)
+            {
+                var pos = _indicator.anchoredPosition;
+                pos.x = targetX;
+                _indicator.anchoredPosition = pos;
+                return;
+            }
+
+            float fromX = _indicator.anchoredPosition.x;
+            float y = _indicator.anchoredPosition.y;
+            UITween.SlideProgress(x => _indicator.anchoredPosition = new Vector2(x, y), fromX, targetX, 0.22f);
         }
     }
 }

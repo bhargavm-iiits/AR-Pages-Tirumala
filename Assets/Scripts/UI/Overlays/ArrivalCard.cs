@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using AlipiriAR.Data;
 using AlipiriAR.Localization;
 using TMPro;
@@ -53,6 +54,18 @@ namespace AlipiriAR.UI
 
             var checkRt = UIFactory.CreateRect("Check", modal);
             checkRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 140f;
+
+            // Ripple ring — added before the disc so it sits behind it in sibling order, and
+            // expands/fades outward from underneath. A radial echo reads as more ceremonial than
+            // a flat pop for a landmark arrival on a pilgrimage route; the confetti below still
+            // does the celebratory work.
+            var rippleRt = UIFactory.CreateRect("Ripple", checkRt);
+            rippleRt.anchorMin = rippleRt.anchorMax = new Vector2(0.5f, 0.5f);
+            UIFactory.SetSize(rippleRt, 140f, 140f);
+            var rippleImg = rippleRt.gameObject.AddComponent<Image>();
+            rippleImg.sprite = UIShapes.Ring(70, 6);
+            rippleImg.color = UITheme.Success;
+
             var checkBgRt = UIFactory.CreateRect("Disc", checkRt);
             checkBgRt.anchorMin = checkBgRt.anchorMax = new Vector2(0.5f, 0.5f);
             UIFactory.SetSize(checkBgRt, 140f, 140f);
@@ -81,6 +94,32 @@ namespace AlipiriAR.UI
 
             ConfettiBurst.Play(rt);
             UITween.PopIn(modal, _group);
+            StartCoroutine(RippleRoutine(rippleRt, rippleImg));
+        }
+
+        private static IEnumerator RippleRoutine(RectTransform rt, Image img)
+        {
+            const float duration = 0.6f;
+            if (UITween.ReducedMotion)
+            {
+                var c0 = img.color;
+                c0.a = 0f;
+                img.color = c0;
+                yield break;
+            }
+
+            float t = 0f;
+            while (t < duration)
+            {
+                if (rt == null || img == null) yield break;
+                t += Time.unscaledDeltaTime;
+                float e = Mathf.Clamp01(t / duration);
+                rt.localScale = Vector3.one * Mathf.Lerp(1f, 2.1f, e);
+                var c = img.color;
+                c.a = Mathf.Lerp(0.55f, 0f, e);
+                img.color = c;
+                yield return null;
+            }
         }
 
         /// <summary>Public so both the "Next Landmark" button and ARNavigationScreen's

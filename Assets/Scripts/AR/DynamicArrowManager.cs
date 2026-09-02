@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AlipiriAR.Data;
+using AlipiriAR.UI;
 using AlipiriAR.Utilities;
 using UnityEngine;
 
@@ -16,6 +17,14 @@ namespace AlipiriAR.AR
         private const float TrailLengthMeters = 100f;
         private const float ArrowSpacingMeters = 2.5f;
         private const float FadeStartMeters = 80f;
+
+        /// <summary>How far apart, in metres of trail distance, the traveling brightness pulse's
+        /// peaks sit — the "energy flowing toward the destination" read, computed cheaply as a
+        /// sine over (distance, time) each Refresh rather than a coroutine per pooled arrow (up to
+        /// ~42 of them).</summary>
+        private const float PulseWavelengthMeters = 14f;
+        private const float PulseSpeedMetersPerSecond = 22f;
+        private const float PulseDepth = 0.35f; // fraction of alpha the pulse trough dips below the base fade
 
         private readonly List<Waypoint> _densified;
         private readonly GroundPlacementService _placement;
@@ -69,7 +78,14 @@ namespace AlipiriAR.AR
                 arrow.SetActive(true);
                 arrow.SetPose(pose);
 
-                float alpha = d <= FadeStartMeters ? 1f : Mathf.Clamp01(1f - (d - FadeStartMeters) / (TrailLengthMeters - FadeStartMeters));
+                float baseAlpha = d <= FadeStartMeters ? 1f : Mathf.Clamp01(1f - (d - FadeStartMeters) / (TrailLengthMeters - FadeStartMeters));
+
+                // Traveling pulse: negative distance term makes the bright band move toward the
+                // walker (decreasing d) as time increases, i.e. energy flows from the horizon back
+                // toward "you are here" — the direction that reads as "this way", not the reverse.
+                float phase = (d - Time.unscaledTime * PulseSpeedMetersPerSecond) / PulseWavelengthMeters * (Mathf.PI * 2f);
+                float pulse = UITween.ReducedMotion ? 1f : 1f - PulseDepth * 0.5f * (1f - Mathf.Cos(phase));
+                float alpha = baseAlpha * pulse;
                 arrow.SetVisual(alpha, wp.Value.IsBridged);
             }
 

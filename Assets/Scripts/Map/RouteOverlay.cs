@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using AlipiriAR.Data;
 using AlipiriAR.UI;
@@ -31,16 +32,65 @@ namespace AlipiriAR.Map
             return overlay;
         }
 
+        /// <summary>Every segment/dot Image built this pass, collected so the whole overlay can
+        /// draw itself on once rather than appearing fully formed the instant the Map tab opens.
+        /// In build order: the translucent white casing pass reveals first (the full route
+        /// outline sketches in), then the coloured core pass draws over it start-to-end — kept as
+        /// two sequential sweeps rather than interleaved per waypoint, since interleaving would
+        /// mean re-ordering the hierarchy itself and casing has to stay behind core in sibling
+        /// order at rest, not just during the reveal.</summary>
+        private readonly List<Image> _drawOrder = new();
+
         private void Build(MapView map, IReadOnlyList<Waypoint> waypoints)
         {
             var rt = (RectTransform)transform;
             rt.SetParent(map.WorldRoot, false);
 
-            DrawPass(rt, map, waypoints, CasingWidth, _ => CasingColor);
-            DrawPass(rt, map, waypoints, CoreWidth, isBridged => isBridged ? UITheme.Warning : UITheme.Accent);
+            DrawPass(rt, map, waypoints, CasingWidth, _ => CasingColor, _drawOrder);
+            DrawPass(rt, map, waypoints, CoreWidth, isBridged => isBridged ? UITheme.Warning : UITheme.Accent, _drawOrder);
+
+            StartCoroutine(DrawOnRoutine());
         }
 
-        private static void DrawPass(Transform parent, MapView map, IReadOnlyList<Waypoint> waypoints, float width, System.Func<bool, Color> colorFor)
+        private IEnumerator DrawOnRoutine()
+        {
+            const float duration = 0.7f;
+            foreach (var img in _drawOrder)
+            {
+                var c = img.color;
+                c.a = 0f;
+                img.color = c;
+            }
+
+            if (UITween.ReducedMotion || _drawOrder.Count == 0)
+            {
+                foreach (var img in _drawOrder)
+                {
+                    var c = img.color;
+                    c.a = 1f;
+                    if (img != null) img.color = c;
+                }
+                yield break;
+            }
+
+            float t = 0f;
+            int revealed = 0;
+            while (revealed < _drawOrder.Count)
+            {
+                t += Time.unscaledDeltaTime;
+                int target = Mathf.Min(_drawOrder.Count, Mathf.FloorToInt(_drawOrder.Count * Mathf.Clamp01(t / duration)));
+                for (; revealed < target; revealed++)
+                {
+                    if (_drawOrder[revealed] == null) continue;
+                    var c = _drawOrder[revealed].color;
+                    c.a = 1f;
+                    _drawOrder[revealed].color = c;
+                }
+                yield return null;
+            }
+        }
+
+        private static void DrawPass(Transform parent, MapView map, IReadOnlyList<Waypoint> waypoints, float width, System.Func<bool, Color> colorFor, List<Image> drawOrder)
         {
             for (int i = 0; i < waypoints.Count - 1; i++)
             {
@@ -48,17 +98,17 @@ namespace AlipiriAR.Map
                 var b = waypoints[i + 1];
                 Vector2 pa = map.WorldPositionRelative(a.Longitude, a.Latitude);
                 Vector2 pb = map.WorldPositionRelative(b.Longitude, b.Latitude);
-                BuildSegment(parent, pa, pb, colorFor(a.IsBridged || b.IsBridged), width);
+                drawOrder.Add(BuildSegment(parent, pa, pb, colorFor(a.IsBridged || b.IsBridged), width));
             }
 
             foreach (var w in waypoints)
             {
                 Vector2 p = map.WorldPositionRelative(w.Longitude, w.Latitude);
-                BuildDot(parent, p, colorFor(w.IsBridged), width);
+                drawOrder.Add(BuildDot(parent, p, colorFor(w.IsBridged), width));
             }
         }
 
-        private static void BuildSegment(Transform parent, Vector2 a, Vector2 b, Color color, float width)
+        private static Image BuildSegment(Transform parent, Vector2 a, Vector2 b, Color color, float width)
         {
             var rt = UIFactory.CreateRect("Segment", parent);
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -74,9 +124,10 @@ namespace AlipiriAR.Map
             var img = rt.gameObject.AddComponent<Image>();
             img.color = color;
             img.raycastTarget = false;
+            return img;
         }
 
-        private static void BuildDot(Transform parent, Vector2 pos, Color color, float diameter)
+        private static Image BuildDot(Transform parent, Vector2 pos, Color color, float diameter)
         {
             var rt = UIFactory.CreateRect("Dot", parent);
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -88,6 +139,7 @@ namespace AlipiriAR.Map
             img.sprite = UIShapes.Circle();
             img.color = color;
             img.raycastTarget = false;
+            return img;
         }
     }
 }

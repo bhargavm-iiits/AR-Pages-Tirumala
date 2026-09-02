@@ -52,6 +52,76 @@ namespace AlipiriAR.UI
             EnsureRunner().StartCoroutine(FloatRoutine(setFillAmount, from, to, duration));
         }
 
+        /// <summary>Continuous breathing scale loop — the chevron trail's traveling pulse and any
+        /// future "this is live/active" indicator use this rather than each hand-rolling their own
+        /// sine timer. Runs on the shared runner (not the target), so it keeps going even if the
+        /// caller doesn't hold a MonoBehaviour of its own; call StopPulse with the returned handle
+        /// to end it (destroying the target GameObject also silently stops it via the null guard).</summary>
+        public static Coroutine Pulse(Transform t, float minScale, float maxScale, float period)
+        {
+            return EnsureRunner().StartCoroutine(PulseRoutine(t, minScale, maxScale, period));
+        }
+
+        public static void StopPulse(Coroutine handle)
+        {
+            if (handle == null) return;
+            EnsureRunner().StopCoroutine(handle);
+        }
+
+        /// <summary>One-shot horizontal shake — low-GPS warning and any other "something's wrong,
+        /// look here" moment. Decaying sine, not a fixed back-and-forth, so it settles rather than
+        /// stopping abruptly on the last beat.</summary>
+        public static void ShakeX(RectTransform rt, float amplitude = 14f, float duration = 0.4f, int cycles = 4)
+        {
+            if (ReducedMotion) return;
+            EnsureRunner().StartCoroutine(ShakeRoutine(rt, amplitude, duration, cycles));
+        }
+
+        /// <summary>Digit-by-digit count instead of a snap — the step badge and any other integer
+        /// readout. Rounds the underlying float tween per frame so it always lands exactly on
+        /// `to`.</summary>
+        public static void CountInt(Action<int> setter, int from, int to, float duration = 0.5f)
+        {
+            EnsureRunner().StartCoroutine(FloatRoutine(v => setter(Mathf.RoundToInt(v)), from, to, duration));
+        }
+
+        private static IEnumerator PulseRoutine(Transform t, float minScale, float maxScale, float period)
+        {
+            float clock = 0f;
+            while (true)
+            {
+                if (t == null) yield break;
+                if (ReducedMotion)
+                {
+                    t.localScale = Vector3.one * ((minScale + maxScale) * 0.5f);
+                    yield return null;
+                    continue;
+                }
+                clock += Time.unscaledDeltaTime;
+                float wave = (Mathf.Sin(clock * (Mathf.PI * 2f) / period) + 1f) * 0.5f;
+                t.localScale = Vector3.one * Mathf.Lerp(minScale, maxScale, wave);
+                yield return null;
+            }
+        }
+
+        private static IEnumerator ShakeRoutine(RectTransform rt, float amplitude, float duration, int cycles)
+        {
+            Vector2 basePos = rt.anchoredPosition;
+            float t = 0f;
+            while (t < duration)
+            {
+                if (rt == null) yield break;
+                t += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(t / duration);
+                float decay = 1f - progress;
+                float offset = Mathf.Sin(progress * cycles * Mathf.PI * 2f) * amplitude * decay;
+                rt.anchoredPosition = basePos + new Vector2(offset, 0f);
+                yield return null;
+            }
+            if (rt == null) yield break;
+            rt.anchoredPosition = basePos;
+        }
+
         private static IEnumerator FadeRoutine(CanvasGroup group, float from, float to, float duration, Action onComplete)
         {
             if (ReducedMotion || duration <= 0f)
