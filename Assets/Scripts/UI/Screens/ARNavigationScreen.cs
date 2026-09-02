@@ -54,11 +54,15 @@ namespace AlipiriAR.UI
         private Image _backgroundImg;
         private RectTransform _fallbackPanel;
         private TMP_Text _fallbackTitle;
+        private Image _fallbackIcon;
+        private Coroutine _fallbackPulseHandle;
         private TMP_Text _fallbackBody;
 
         private TMP_Text _pillNameLabel;
         private TMP_Text _pillDistanceLabel;
         private Image _speakerIcon;
+        private Audio.VoiceNavigationManager _voice;
+        private Coroutine _speakerPulseHandle;
         private Image _arPillBg;
         private Image _autoPillBg;
         private GameObject _autoGlow;
@@ -184,6 +188,21 @@ namespace AlipiriAR.UI
             if (ServiceLocator.TryGet<UIRoot>(out var uiRoot) && uiRoot.EdgeToEdgeBackground != null)
                 uiRoot.EdgeToEdgeBackground.color = ready ? clear : UITheme.Ground;
 
+            // Pulse only while genuinely checking — a static "please wait" icon gives no sense
+            // that anything is happening, and every other fallback state (unsupported, failed,
+            // needs-install) is a terminal outcome, not a wait, so it shouldn't breathe.
+            if (state == ArAvailabilityState.Checking)
+            {
+                if (_fallbackPulseHandle == null && _fallbackIcon != null)
+                    _fallbackPulseHandle = UITween.Pulse(_fallbackIcon.transform, 0.9f, 1.08f, 1.4f);
+            }
+            else if (_fallbackPulseHandle != null)
+            {
+                UITween.StopPulse(_fallbackPulseHandle);
+                _fallbackPulseHandle = null;
+                if (_fallbackIcon != null) _fallbackIcon.transform.localScale = Vector3.one;
+            }
+
             switch (state)
             {
                 case ArAvailabilityState.Checking:
@@ -246,7 +265,7 @@ namespace AlipiriAR.UI
 
             var iconRt = UIFactory.CreateRect("Icon", _fallbackPanel);
             iconRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 100f;
-            UIFactory.CenteredIcon(iconRt, IconType.Compass, 80f, UITheme.TextTertiary);
+            _fallbackIcon = UIFactory.CenteredIcon(iconRt, IconType.Compass, 80f, UITheme.TextTertiary);
 
             var titleRt = UIFactory.CreateRect("Title", _fallbackPanel);
             titleRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 48f;
@@ -280,6 +299,14 @@ namespace AlipiriAR.UI
             var speakerBtn = UIFactory.CircleButton(speakerRt, 72f, ToggleVoiceMute, new Color(0f, 0f, 0f, 0.45f));
             _speakerIcon = UIFactory.CenteredIcon(speakerBtn.transform, IconType.Speaker, 32f);
             RefreshSpeakerIcon();
+
+            // No visual feedback previously existed that narration was actually playing — the
+            // icon just sat static whether or not VoiceNavigationManager was speaking. A gentle
+            // breathing pulse on the icon itself, for exactly the duration of playback, closes
+            // that gap without adding new UI geometry.
+            _voice = Audio.VoiceNavigationManager.Resolve();
+            _voice.OnPlaybackStarted += OnVoicePlaybackStarted;
+            _voice.OnPlaybackFinished += OnVoicePlaybackFinished;
 
             var pillRt = UIFactory.CreateRect("LandmarkPill", parent);
             pillRt.anchorMin = new Vector2(0.5f, 1f);
@@ -529,6 +556,8 @@ namespace AlipiriAR.UI
             _stepBadgeLabel = UIFactory.Label(labelRt, string.Empty, UITheme.CaptionFontSize, FontStyles.Bold, TextAlignmentOptions.Center);
         }
 
+        private int _lastStepBadgeValue = -1;
+
         private void RefreshStepBadge()
         {
             // Shared with ProgressScreen/PoiMarkerLayer via RouteResult.TotalStepsEstimate —
@@ -536,8 +565,23 @@ namespace AlipiriAR.UI
             // hardcoded 3550 literal here, duplicated in the other two screens too).
             int totalSteps = _db.Route.TotalStepsEstimate;
             int steps = Mathf.RoundToInt(totalSteps * _session.Progress.FractionComplete);
-            _stepBadgeLabel.text = Loc.T("nav.steps_label") + "\n~" + steps.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+
+            // OnLocationFix calls this on every fix, but the rounded step count only actually
+            // changes every few metres — guard so a burst of identical fixes doesn't restart the
+            // count-up tween on top of itself and stutter the label.
+            if (steps == _lastStepBadgeValue)
+            {
+                SetStepBadgeText(steps);
+                return;
+            }
+
+            int from = _lastStepBadgeValue < 0 ? steps : _lastStepBadgeValue;
+            _lastStepBadgeValue = steps;
+            UITween.CountInt(SetStepBadgeText, from, steps, 0.4f);
         }
+
+        private void SetStepBadgeText(int steps) =>
+            _stepBadgeLabel.text = Loc.T("nav.steps_label") + "\n~" + steps.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
 
         // ---------------------------------------------------------------
         // Bottom stat card
@@ -825,6 +869,19 @@ namespace AlipiriAR.UI
             Audio.VoiceNavigationManager.Resolve().Speak(text);
         }
 
+        private void OnVoicePlaybackStarted()
+        {
+            if (_speakerIcon == null) return;
+            _speakerPulseHandle = UITween.Pulse(_speakerIcon.transform, 0.88f, 1.12f, 0.9f);
+        }
+
+        private void OnVoicePlaybackFinished()
+        {
+            UITween.StopPulse(_speakerPulseHandle);
+            _speakerPulseHandle = null;
+            if (_speakerIcon != null) _speakerIcon.transform.localScale = Vector3.one;
+        }
+
         private void OnDestroy()
         {
             if (_session != null)
@@ -834,6 +891,13 @@ namespace AlipiriAR.UI
                 _session.Location.OnAccuracyLevelChanged -= OnAccuracyLevelChanged;
                 _session.OnStateChanged -= OnSessionStateChanged;
             }
+            if (_voice != null)
+            {
+                _voice.OnPlaybackStarted -= OnVoicePlaybackStarted;
+                _voice.OnPlaybackFinished -= OnVoicePlaybackFinished;
+            }
+            UITween.StopPulse(_speakerPulseHandle);
+            UITween.StopPulse(_fallbackPulseHandle);
         }
     }
 }

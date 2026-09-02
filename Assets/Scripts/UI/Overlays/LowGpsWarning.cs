@@ -76,6 +76,17 @@ namespace AlipiriAR.UI
             LocalizedLabel.Bind(okLabel, "common.ok");
 
             UITween.PopIn(modal, _group);
+            // Shake starts as the pop-in settles rather than fighting it from frame one — this is
+            // the one overlay in the app that means "something's wrong," and the extra beat of
+            // motion is what tells a pilgrim mid-climb to actually read it instead of dismissing
+            // on reflex.
+            StartCoroutine(ShakeAfterDelay(modal, 0.15f));
+        }
+
+        private static System.Collections.IEnumerator ShakeAfterDelay(RectTransform modal, float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            if (modal != null) UITween.ShakeX(modal, amplitude: 10f, duration: 0.35f, cycles: 3);
         }
 
         public void Close()

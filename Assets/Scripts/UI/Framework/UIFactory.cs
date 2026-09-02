@@ -195,6 +195,7 @@ namespace AlipiriAR.UI
             var btn = pillImg.gameObject.AddComponent<Button>();
             btn.targetGraphic = pillImg;
             SetButtonColors(btn, UITheme.Accent);
+            AddPressFeedback(pillImg.gameObject);
             Label(pillImg.transform, text, UITheme.BodyFontSize, FontStyles.Bold, TextAlignmentOptions.Center, Color.white);
             if (onClick != null) btn.onClick.AddListener(() => onClick());
             return btn;
@@ -207,6 +208,7 @@ namespace AlipiriAR.UI
             var btn = pillImg.gameObject.AddComponent<Button>();
             btn.targetGraphic = pillImg;
             SetButtonColors(btn, new Color(1, 1, 1, 0.06f));
+            AddPressFeedback(pillImg.gameObject);
             Label(pillImg.transform, text, UITheme.BodyFontSize, FontStyles.Normal, TextAlignmentOptions.Center, UITheme.TextSecondary);
             if (onClick != null) btn.onClick.AddListener(() => onClick());
             return btn;
@@ -226,8 +228,49 @@ namespace AlipiriAR.UI
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = img;
             SetButtonColors(btn, img.color);
+            AddPressFeedback(rt.gameObject);
             if (onClick != null) btn.onClick.AddListener(() => onClick());
             return btn;
+        }
+
+        /// <summary>Scale-down-then-up on every button press (0.94 -> 1.0, ~90ms), pairing the
+        /// haptic pulse HapticService already fires on interaction with a visual one — before this,
+        /// the haptic had no matching on-screen confirmation. Pure pointer-driven, no dependency
+        /// on Selectable's own Transition system (kept at None everywhere via SetButtonColors), so
+        /// it works identically whether the button also has a sprite-swap or color transition.</summary>
+        private static void AddPressFeedback(GameObject go) => go.AddComponent<PressScaleFeedback>();
+
+        private class PressScaleFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
+        {
+            private RectTransform _rt;
+            private Coroutine _running;
+
+            private void Awake() => _rt = (RectTransform)transform;
+
+            public void OnPointerDown(PointerEventData eventData) => AnimateTo(0.94f, 0.05f);
+            public void OnPointerUp(PointerEventData eventData) => AnimateTo(1f, 0.09f);
+            public void OnPointerExit(PointerEventData eventData) => AnimateTo(1f, 0.09f);
+
+            private void AnimateTo(float target, float duration)
+            {
+                if (_rt == null || UITween.ReducedMotion) { if (_rt != null) _rt.localScale = Vector3.one * (UITween.ReducedMotion ? 1f : target); return; }
+                if (_running != null) StopCoroutine(_running);
+                _running = StartCoroutine(ScaleRoutine(target, duration));
+            }
+
+            private System.Collections.IEnumerator ScaleRoutine(float target, float duration)
+            {
+                float from = _rt.localScale.x;
+                float t = 0f;
+                while (t < duration)
+                {
+                    t += Time.unscaledDeltaTime;
+                    float v = Mathf.Lerp(from, target, Mathf.Clamp01(t / duration));
+                    _rt.localScale = Vector3.one * v;
+                    yield return null;
+                }
+                _rt.localScale = Vector3.one * target;
+            }
         }
 
         /// <summary>A centred icon sized to fit inside any non-LayoutGroup parent (a circular
@@ -313,8 +356,15 @@ namespace AlipiriAR.UI
 
             toggle.onValueChanged.AddListener(isOn =>
             {
-                trackImg.color = isOn ? UITheme.Accent : UITheme.Rule;
-                knobRt.anchoredPosition = new Vector2(isOn ? knobOnX : inset, 0f);
+                float fromX = knobRt.anchoredPosition.x;
+                float toX = isOn ? knobOnX : inset;
+                Color fromColor = trackImg.color;
+                Color toColor = isOn ? UITheme.Accent : UITheme.Rule;
+                UITween.SlideProgress(blend =>
+                {
+                    knobRt.anchoredPosition = new Vector2(Mathf.Lerp(fromX, toX, blend), 0f);
+                    trackImg.color = Color.Lerp(fromColor, toColor, blend);
+                }, 0f, 1f, 0.16f);
                 onChanged?.Invoke(isOn);
             });
 

@@ -112,6 +112,49 @@ namespace AlipiriAR.UI
                 ManeuverType.TurnRight => Quaternion.Euler(0f, 0f, 180f),
                 _ => Quaternion.Euler(0f, 0f, 90f),
             };
+
+            NudgeArrow(maneuver.Type);
+        }
+
+        /// <summary>A quick directional overshoot on top of the arrow's static rotation — a small
+        /// sideways punch (or a downward nudge for "continue straight") each time a fresh Maneuver
+        /// arrives, so the card reads as actively pointing rather than a label that happens to have
+        /// an icon on it.</summary>
+        private void NudgeArrow(ManeuverType type)
+        {
+            if (_nudgeRoutine != null) StopCoroutine(_nudgeRoutine);
+            Vector2 direction = type switch
+            {
+                ManeuverType.TurnLeft => Vector2.left,
+                ManeuverType.TurnRight => Vector2.right,
+                _ => Vector2.down,
+            };
+            _nudgeRoutine = StartCoroutine(NudgeRoutine(direction));
+        }
+
+        private Coroutine _nudgeRoutine;
+
+        private System.Collections.IEnumerator NudgeRoutine(Vector2 direction)
+        {
+            if (UITween.ReducedMotion) yield break;
+            var rt = (RectTransform)_arrowIcon.transform;
+            Vector2 basePos = rt.anchoredPosition;
+            const float amplitude = 16f;
+            const float duration = 0.3f;
+
+            float t = 0f;
+            while (t < duration)
+            {
+                if (rt == null) yield break;
+                t += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(t / duration);
+                // One overshoot-and-settle bounce, not a repeating oscillation — a single
+                // decaying half-sine reads as "punched that way", not "vibrating".
+                float offset = Mathf.Sin(progress * Mathf.PI) * (1f - progress) * amplitude;
+                rt.anchoredPosition = basePos + direction * offset;
+                yield return null;
+            }
+            if (rt != null) rt.anchoredPosition = basePos;
         }
 
         public void Close()

@@ -84,9 +84,42 @@ namespace AlipiriAR.Map
             _rt.anchoredPosition = _map.WorldPositionRelative(lon, lat);
         }
 
+        private float _targetHeadingDeg;
+        private Coroutine _headingRoutine;
+
+        /// <summary>Eases toward the new heading over ~150ms instead of snapping — raw compass
+        /// readings are noisy enough on a real device that a hard snap on every fix reads as the
+        /// marker jittering in place; an eased rotation absorbs that without hiding a genuine
+        /// direction change (it always finishes at the real target, never lags behind it).</summary>
         public void SetHeadingDegrees(float headingDeg)
         {
-            _chevronRt.localRotation = Quaternion.Euler(0f, 0f, -headingDeg);
+            _targetHeadingDeg = headingDeg;
+            if (_headingRoutine != null) StopCoroutine(_headingRoutine);
+            _headingRoutine = StartCoroutine(RotateRoutine());
+        }
+
+        private IEnumerator RotateRoutine()
+        {
+            const float duration = 0.15f;
+            float startZ = _chevronRt.localEulerAngles.z;
+            float targetZ = -_targetHeadingDeg;
+            float deltaZ = Mathf.DeltaAngle(startZ, targetZ);
+
+            if (UITween.ReducedMotion)
+            {
+                _chevronRt.localRotation = Quaternion.Euler(0f, 0f, targetZ);
+                yield break;
+            }
+
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.unscaledDeltaTime;
+                float e = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / duration), 3f);
+                _chevronRt.localRotation = Quaternion.Euler(0f, 0f, startZ + deltaZ * e);
+                yield return null;
+            }
+            _chevronRt.localRotation = Quaternion.Euler(0f, 0f, targetZ);
         }
 
         /// <summary>Halo radius in real ground metres — grows honestly with reported GPS

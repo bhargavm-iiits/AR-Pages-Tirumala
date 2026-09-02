@@ -235,8 +235,15 @@ namespace AlipiriAR.UI
             foreach (var (filter, bg, label, _) in _chips)
             {
                 bool selected = filter == _activeFilter;
-                bg.color = selected ? UITheme.Accent : UITheme.Surface;
-                label.color = selected ? Color.white : UITheme.TextSecondary;
+                Color targetBg = selected ? UITheme.Accent : UITheme.Surface;
+                Color targetLabel = selected ? Color.white : UITheme.TextSecondary;
+                Color fromBg = bg.color;
+                Color fromLabel = label.color;
+                UITween.SlideProgress(t =>
+                {
+                    bg.color = Color.Lerp(fromBg, targetBg, t);
+                    label.color = Color.Lerp(fromLabel, targetLabel, t);
+                }, 0f, 1f, 0.14f);
             }
         }
 

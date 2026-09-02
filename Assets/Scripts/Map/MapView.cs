@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using AlipiriAR.UI;
 using AlipiriAR.Utilities;
 using UnityEngine;
@@ -251,6 +252,47 @@ namespace AlipiriAR.Map
                 _followMe = true;
                 OnFollowMeChanged?.Invoke();
             }
+            ApplyTransform();
+        }
+
+        private Coroutine _centerRoutine;
+
+        /// <summary>Eased version of CenterOn, for the explicit recenter button tap only — a
+        /// deliberate "bring me back" action reads better as a camera move than a jump-cut.
+        /// Deliberately NOT used by the live-tracking follow-me path (OnLocationFix while
+        /// FollowMe is true): that calls plain CenterOn every fix, and animating a re-target that
+        /// fires several times a second would just look laggy rather than smooth.</summary>
+        public void AnimatedCenterOn(double lon, double lat)
+        {
+            if (_centerRoutine != null) StopCoroutine(_centerRoutine);
+
+            Vector2 targetPos = -WorldPositionRelative(lon, lat);
+            if (UITween.ReducedMotion)
+            {
+                CenterOn(lon, lat);
+                return;
+            }
+            _centerRoutine = StartCoroutine(AnimatedCenterRoutine(targetPos));
+        }
+
+        private IEnumerator AnimatedCenterRoutine(Vector2 targetPanWorldPx)
+        {
+            const float duration = 0.35f;
+            Vector2 from = _panWorldPx;
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.unscaledDeltaTime;
+                float e = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / duration), 3f);
+                _panWorldPx = Vector2.Lerp(from, targetPanWorldPx, e);
+                ClampPan();
+                ApplyTransform();
+                yield return null;
+            }
+            _panWorldPx = targetPanWorldPx;
+            ClampPan();
+            _followMe = true;
+            OnFollowMeChanged?.Invoke();
             ApplyTransform();
         }
 

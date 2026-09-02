@@ -235,7 +235,7 @@ namespace AlipiriAR.UI
             _recenterGlow.SetActive(_mapView.FollowMe);
         }
 
-        private void OnRecenterTapped() => _mapView.CenterOn(_lastLon, _lastLat);
+        private void OnRecenterTapped() => _mapView.AnimatedCenterOn(_lastLon, _lastLat);
 
         private void OnTiltTapped()
         {
