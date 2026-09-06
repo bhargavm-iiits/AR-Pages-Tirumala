@@ -138,10 +138,17 @@ namespace AlipiriAR.UI
                 }
                 case IconType.Compass:
                 {
+                    // Cardinal tick marks (N/E/S/W) just outside the ring — an unmarked circle
+                    // read as a generic dial rather than a compass; this is what makes the needle's
+                    // heading legible against a fixed reference (Docs/UIplan.md accuracy pass).
                     float ring = UIShapes.CircleStrokeAlpha(p, c, r, t * 0.8f);
+                    float tickN = UIShapes.StrokeAlpha(p, c + new Vector2(0, -r - t * 0.2f), c + new Vector2(0, -r - t * 1.6f), t * 0.6f);
+                    float tickS = UIShapes.StrokeAlpha(p, c + new Vector2(0, r + t * 0.2f), c + new Vector2(0, r + t * 1.6f), t * 0.6f);
+                    float tickE = UIShapes.StrokeAlpha(p, c + new Vector2(r + t * 0.2f, 0), c + new Vector2(r + t * 1.6f, 0), t * 0.6f);
+                    float tickW = UIShapes.StrokeAlpha(p, c + new Vector2(-r - t * 0.2f, 0), c + new Vector2(-r - t * 1.6f, 0), t * 0.6f);
                     float needleN = UIShapes.StrokeAlpha(p, c, c + new Vector2(0, -r * 0.75f), t);
                     float needleS = UIShapes.StrokeAlpha(p, c, c + new Vector2(0, r * 0.5f), t * 0.7f);
-                    return Mathf.Max(ring, needleN, needleS);
+                    return Mathf.Max(Mathf.Max(ring, needleN), Mathf.Max(needleS, Mathf.Max(Mathf.Max(tickN, tickS), Mathf.Max(tickE, tickW))));
                 }
                 case IconType.North:
                 {

@@ -78,7 +78,9 @@ namespace AlipiriAR.UI
             heroRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 420f;
 
             var bg = heroRt.gameObject.AddComponent<Image>();
-            bg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.65f);
+            // Was 0.65 — see LandmarksScreen's matching fix; a green Ground muddies a diluted
+            // gold/blue tint, so this keeps more of the tint's own color.
+            bg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.4f);
 
             UIFactory.CenteredIcon(heroRt, LandmarkVisuals.IconFor(landmark.Type), 200f, new Color(1f, 1f, 1f, 0.85f));
 

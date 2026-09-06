@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  :root{
+    --ground:#14231A; --surface:#1D3226; --rule:#3B5C48;
+    --text:#EAF2E9; --text-2:#9FB8A8; --text-3:#6E8A79;
+    --accent:#4C8C4A; --accent-2:#7FBF6B; --gold:#D9A441;
+    --sky:#4A86D4; --sky-2:#8FC0EF;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font); }
+  a { color: var(--accent-2); } a:hover { color: var(--gold); }
+
+  .screen{ position:relative; width:390px; height:844px; overflow:hidden; background:var(--ground); border-radius:28px; color:var(--text); display:flex; flex-direction:column; }
+  .content{ flex:1; overflow-y:auto; padding-bottom:8px; }
+
+  .header{ display:flex; align-items:center; gap:10px; padding:16px 16px 10px; }
+  .back{ width:40px; height:40px; border-radius:999px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .back svg{ width:18px; height:18px; }
+  .header .title{ font-size:22px; font-weight:700; }
+
+  .row{ display:flex; align-items:center; gap:14px; padding:0 16px; height:60px; }
+  .row .icon{ width:22px; height:22px; color:var(--text-2); flex:0 0 auto; }
+  .row .label{ flex:1; font-size:15px; }
+  .row .value{ font-size:14px; color:var(--text-2); }
+  .row .chev{ color:var(--text-3); font-size:16px; margin-left:2px; }
+  .sep{ height:1px; background:var(--rule); margin:0 16px; }
+
+  .switch{ width:44px; height:26px; border-radius:999px; position:relative; flex:0 0 auto; }
+  .switch.on{ background:var(--sky); box-shadow:0 0 8px rgba(74,134,212,0.4); }
+  .switch.off{ background:var(--rule); }
+  .knob{ position:absolute; top:3px; width:20px; height:20px; border-radius:999px; }
+  .switch.on .knob{ left:21px; background:#EAF2E9; }
+  .switch.off .knob{ left:3px; background:#EAF2E9; }
+
+  .navbar{ flex:0 0 78px; background:var(--surface); display:flex; }
+  .navtab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-2); position:relative; }
+  .navtab svg{ width:22px; height:22px; }
+  .navtab .lbl{ font-size:10px; }
+  .navtab.active{ color:var(--sky-2); }
+  .navtab.active::after{ content:""; position:absolute; top:4px; width:16px; height:3px; border-radius:999px; background:var(--sky-2); box-shadow:0 0 6px rgba(143,192,239,0.9); animation: dotpulse 1.6s ease-in-out infinite; }
+  @keyframes dotpulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.5; } }
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="content">
+    <div class="header">
+      <div class="back"><svg viewBox="0 0 24 24" fill="none" stroke="#EAF2E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg></div>
+      <div class="title">Settings</div>
+    </div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg>
+      <div class="label">Voice Guidance</div>
+      <div class="switch on"><div class="knob"></div></div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+      <div class="label">Language</div>
+      <div class="value">English</div>
+      <div class="chev">&#8250;</div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="1"/><line x1="7" y1="8" x2="7" y2="11"/><line x1="11" y1="8" x2="11" y2="11"/><line x1="15" y1="8" x2="15" y2="11"/></svg>
+      <div class="label">Units</div>
+      <div class="value">Metric (m, cm)</div>
+      <div class="chev">&#8250;</div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/></svg>
+      <div class="label">Auto Brightness</div>
+      <div class="switch on"><div class="knob"></div></div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3l-2 4"/><path d="M16 3l2 4"/><rect x="6" y="7" width="12" height="14" rx="2"/></svg>
+      <div class="label">Haptic Feedback</div>
+      <div class="switch on"><div class="knob"></div></div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,3 3,6 3,20 9,17 15,20 21,17 21,3 15,6 9,3"/><line x1="9" y1="3" x2="9" y2="17"/><line x1="15" y1="6" x2="15" y2="20"/></svg>
+      <div class="label">Offline Maps</div>
+      <div class="chev">&#8250;</div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.5 3.5-6 8-6s8 2.5 8 6"/></svg>
+      <div class="label">Edit Profile</div>
+      <div class="chev">&#8250;</div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7,8 12,3 17,8"/><path d="M5 21h14"/></svg>
+      <div class="label">Export Login Sheet</div>
+      <div class="chev">&#8250;</div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="currentColor"/></svg>
+      <div class="label">About</div>
+      <div class="chev">&#8250;</div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14,12 12,17 10,12" fill="currentColor" stroke="none"/></svg><span class="lbl">Navigate</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,3 3,6 3,20 9,17 15,20 21,17 21,3 15,6 9,3"/><line x1="9" y1="3" x2="9" y2="17"/><line x1="15" y1="6" x2="15" y2="20"/></svg><span class="lbl">Map</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.5 4h-5L12 2zM9 6.5h6l1.2 2.5H7.8L9 6.5zm-1.6 3.5h9.2l1.1 2.5H6.3L7.4 10zm-1.4 3.5h11.6l1.4 3.5H4.6L6 13.5zM4 19h16v2H4v-2z"/></svg><span class="lbl">Landmarks</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span class="lbl">Progress</span></div>
+    <div class="navtab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

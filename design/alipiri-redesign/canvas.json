@@ -1,0 +1,36 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "AR Navigation", "page": "page-1" },
+    { "file": "Map.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Map", "page": "page-1" },
+    { "file": "Landmarks.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Landmarks", "page": "page-1" },
+    { "file": "Progress.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Progress", "page": "page-1" },
+    { "file": "Settings.dc.html", "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Settings", "page": "page-1" },
+
+    { "file": "MainGreen.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "AR Navigation", "page": "page-2" },
+    { "file": "MapGreen.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Map", "page": "page-2" },
+    { "file": "LandmarksGreen.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Landmarks", "page": "page-2" },
+    { "file": "ProgressGreen.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Progress", "page": "page-2" },
+    { "file": "SettingsGreen.dc.html", "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Settings", "page": "page-2" }
+  ],
+  "annotations": [
+    { "id": "p2-title-main", "x": 0, "y": -86, "w": 390, "text": "AR Navigation", "page": "page-2", "kind": "title1" },
+    { "id": "p2-desc-main", "x": 0, "y": -42, "w": 390, "text": "Full-bleed camera view — chevron trail, glass HUD stat card, quick controls.", "page": "page-2", "color": "blue" },
+
+    { "id": "p2-title-map", "x": 470, "y": -86, "w": 390, "text": "Map", "page": "page-2", "kind": "title1" },
+    { "id": "p2-desc-map", "x": 470, "y": -42, "w": 390, "text": "Offline basemap, live route and a standard blue location marker.", "page": "page-2", "color": "blue" },
+
+    { "id": "p2-title-landmarks", "x": 940, "y": -86, "w": 390, "text": "Landmarks", "page": "page-2", "kind": "title1" },
+    { "id": "p2-desc-landmarks", "x": 940, "y": -42, "w": 390, "text": "Filterable waypoint list with visited status and distance along route.", "page": "page-2", "color": "blue" },
+
+    { "id": "p2-title-progress", "x": 1410, "y": -86, "w": 390, "text": "Progress", "page": "page-2", "kind": "title1" },
+    { "id": "p2-desc-progress", "x": 1410, "y": -42, "w": 390, "text": "Completion ring, distance/ETA stats and elevation profile.", "page": "page-2", "color": "blue" },
+
+    { "id": "p2-title-settings", "x": 1880, "y": -86, "w": 390, "text": "Settings", "page": "page-2", "kind": "title1" },
+    { "id": "p2-desc-settings", "x": 1880, "y": -42, "w": 390, "text": "Voice, language, units, brightness, haptics and account preferences.", "page": "page-2", "color": "blue" }
+  ],
+  "pages": [
+    { "id": "page-1", "name": "Devotional (Marigold)" },
+    { "id": "page-2", "name": "Green Hills + Blue" }
+  ],
+  "launch": { "view": "canvas", "page": "page-2" }
+}
