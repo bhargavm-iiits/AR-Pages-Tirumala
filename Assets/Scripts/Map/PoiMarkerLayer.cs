@@ -35,7 +35,18 @@ namespace AlipiriAR.Map
     /// the rest but left unwired; see AvatarPortraits' own doc.</summary>
     public class PoiMarkerLayer : MonoBehaviour
     {
-        private const float DeclutterZoom = 15.5f;
+        // Was 15.5f — below MapScreen's own default zoom (16f, see MapScreen.Build), which meant
+        // showPins (zoom >= DeclutterZoom) was ALWAYS true on the view every user actually opens
+        // first, so the callout cards below never actually decluttered anything. Confirmed on a
+        // real device (screenshot, 2026-09-06): the six Dashavatara callouts overlap each other's
+        // leader lines and text badly at the default view. The class doc's "220m-1.1km apart,
+        // nowhere near dense enough to collide" claim was never checked against this route's real
+        // coordinates — measured straight-line distances between the six are actually 220-300m,
+        // which at zoom 16 (this file's own ZoomScale = 2^(zoom-18)) is under 130px on screen,
+        // far short of a single callout's own ~230px reach. Raised well above the default so the
+        // clean small-dot view is what most users see; CalloutWidth/LeaderLineLength below are
+        // also shrunk so even the closest pair (Mathsyavataram-Kurma, ~223m) clears once zoomed in.
+        private const float DeclutterZoom = 17.5f;
         private const float NormalPinSize = 56f;
 
         /// <summary>The visible gold dot marking an avatar's exact position on the path — sized
@@ -49,10 +60,14 @@ namespace AlipiriAR.Map
         /// small and precise while the tap target stays comfortable.</summary>
         private const float AvatarPointTapSize = 48f;
 
-        private const float LeaderLineLength = 42f;
+        // Leader/callout footprint shrunk alongside the DeclutterZoom raise above (176/42 was the
+        // original size) — smaller cards need less real-world separation to clear each other,
+        // which matters since the six Dashavatara landmarks sit 220-300m apart, closer than a
+        // full-size card's own reach even at max zoom.
+        private const float LeaderLineLength = 24f;
         private const float LeaderLineWidth = 3f;
-        private const float CalloutWidth = 176f;
-        private const float CalloutImageSize = 96f;
+        private const float CalloutWidth = 132f;
+        private const float CalloutImageSize = 68f;
 
         /// <summary>Total steps the whole route is estimated at — set from RouteResult.
         /// TotalStepsEstimate at construction (Docs/update1.md §02 F-05: this used to be its own
@@ -189,7 +204,9 @@ namespace AlipiriAR.Map
             UIFactory.SetSize(fillRt, NormalPinSize, NormalPinSize);
             var bg = fillRt.gameObject.AddComponent<Image>();
             bg.sprite = UIShapes.Circle();
-            bg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.5f);
+            // 0.5 (was fine against the old neutral Ground) reads muddy now that Ground is forest
+            // green diluting a gold/blue tint — see LandmarksScreen's matching fix.
+            bg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.35f);
 
             var ringRt = UIFactory.CreateRect("Ring", pinRt);
             ringRt.anchorMin = ringRt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -318,7 +335,10 @@ namespace AlipiriAR.Map
             var nameLabel = UIFactory.Label(nameRt, nameText, UITheme.CaptionFontSize,
                 FontStyles.Bold, TextAlignmentOptions.Center, UITheme.TextPrimary);
             nameLabel.enableWordWrapping = true;
-            nameRt.gameObject.AddComponent<LayoutElement>().preferredHeight = hasSubtitle ? 56f : 30f;
+            // Bumped from 56/30 — CalloutWidth's own shrink (176 to 132, above) leaves less inner
+            // width per line, so a name like "SRI VAMANA AVATARAM" now wraps to two lines before
+            // even reaching its own "(The Dwarf)" line; the old fixed height clipped the third line.
+            nameRt.gameObject.AddComponent<LayoutElement>().preferredHeight = hasSubtitle ? 80f : 44f;
 
             int stepNumber = _totalRouteDistanceMeters > 0
                 ? Mathf.RoundToInt(_totalStepsEstimate * (float)(landmark.CumulativeDistanceMeters / _totalRouteDistanceMeters))

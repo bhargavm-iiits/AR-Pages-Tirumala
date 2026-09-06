@@ -332,7 +332,11 @@ namespace AlipiriAR.UI
             var thumbImg = thumbRt.gameObject.AddComponent<Image>();
             thumbImg.sprite = UIShapes.RoundedRect(20);
             thumbImg.type = Image.Type.Sliced;
-            thumbImg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.7f);
+            // Was 0.7 toward Ground — fine when Ground was a neutral warm grey, but now that
+            // Ground is forest green, diluting a gold tint 70% toward it reads as a muddy olive
+            // (confirmed on-device screenshot, 2026-09-06) rather than a warm temple-gold tile.
+            // Lower ratio keeps the tint itself recognizable regardless of Ground's hue.
+            thumbImg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.4f);
             UIFactory.CenteredIcon(thumbRt, LandmarkVisuals.IconFor(landmark.Type), 64f, LandmarkVisuals.TintFor(landmark.Type));
 
             var statusSlot = UIFactory.CreateRect("StatusSlot", card.transform);

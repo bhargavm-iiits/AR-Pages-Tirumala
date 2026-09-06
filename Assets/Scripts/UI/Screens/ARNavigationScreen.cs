@@ -429,8 +429,13 @@ namespace AlipiriAR.UI
             var arSlot = UIFactory.CreateRect("ArSlot", railRt);
             SetFixedSlot(arSlot, 72f);
             // Always Accent-filled (never toggled off, unlike Auto/North below), so it can carry a
-            // static glow rather than needing a reference to flip on/off.
-            UIFactory.CircleGlow(arSlot, 72f, UITheme.Accent);
+            // static glow rather than needing a reference to flip on/off. Spread capped at 5px
+            // (default is 20px) — AR and Auto sit back-to-back with only SpaceS (12px) between
+            // them and no spacer slot the way Map's recenter/north do, so the default spread had
+            // each glow's hard-edged circle (UIShapes has no blur — see its own doc) reaching 8px
+            // past the midpoint into its neighbour, merging both into one indistinct blob on a
+            // real device (confirmed on-device screenshot, 2026-09-06).
+            UIFactory.CircleGlow(arSlot, 72f, UITheme.Accent, spread: 5f);
             UIFactory.CircleShadow(arSlot, 72f);
             var arBtn = UIFactory.CircleButton(arSlot, 72f, () => ServiceLocator.Get<UIRoot>().JumpToTab(1), UITheme.Accent);
             _arPillBg = arBtn.GetComponent<Image>();
@@ -439,7 +444,7 @@ namespace AlipiriAR.UI
 
             var autoSlot = UIFactory.CreateRect("AutoSlot", railRt);
             SetFixedSlot(autoSlot, 72f);
-            _autoGlow = UIFactory.CircleGlow(autoSlot, 72f, UITheme.Accent).gameObject;
+            _autoGlow = UIFactory.CircleGlow(autoSlot, 72f, UITheme.Accent, spread: 5f).gameObject;
             UIFactory.CircleShadow(autoSlot, 72f);
             var autoBtn = UIFactory.CircleButton(autoSlot, 72f, ToggleAutoAdvance, UITheme.Surface);
             _autoPillBg = autoBtn.GetComponent<Image>();

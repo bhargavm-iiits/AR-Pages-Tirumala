@@ -77,3 +77,12 @@ Assets/login.xlsx.meta
 # map_api_key.example.txt instead; each dev/CI machine drops its own real key in locally.
 Assets/StreamingAssets/map_api_key.txt
 Assets/StreamingAssets/map_api_key.txt.meta
+
+# ARCore Extensions writes its Android/iOS Cloud Services API key into this file as plain JSON
+# (Google.XR.ARCoreExtensions.Internal.ARCoreExtensionsProjectSettings._projectSettingsPath,
+# verified against the actual package source in LocalPackages/) — unlike everywhere else Unity
+# stores project config, this one file genuinely doesn't belong under version control. Unlike
+# StreamingAssets, ProjectSettings/ is NOT excluded above (by design — TagManager.asset,
+# ProjectSettings.asset etc. are meant to be tracked), so this needs its own explicit line or the
+# next commit from anyone who's set an API key in the ARCore Extensions Inspector leaks it.
+ProjectSettings/ARCoreExtensionsProjectSettings.json

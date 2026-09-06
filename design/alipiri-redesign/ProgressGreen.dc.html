@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  :root{
+    --ground:#14231A; --surface:#1D3226; --rule:#3B5C48;
+    --text:#EAF2E9; --text-2:#9FB8A8; --text-3:#6E8A79;
+    --accent:#4C8C4A; --accent-2:#7FBF6B; --gold:#D9A441; --gold-2:#EFC97A;
+    --sky:#4A86D4; --sky-2:#8FC0EF;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font); }
+  a { color: var(--accent-2); } a:hover { color: var(--gold); }
+
+  .screen{ position:relative; width:390px; height:844px; overflow:hidden; background:var(--ground); border-radius:28px; color:var(--text); display:flex; flex-direction:column; }
+  .content{ flex:1; overflow-y:auto; padding:16px 16px 20px; display:flex; flex-direction:column; gap:16px; }
+
+  .header{ display:flex; align-items:center; gap:10px; }
+  .header .g-icon{ width:30px; height:30px; animation: flicker 2.6s ease-in-out infinite; }
+  @keyframes flicker{ 0%,100%{ filter:brightness(1); } 40%{ filter:brightness(1.3); } 60%{ filter:brightness(0.92); } }
+  .header .title{ font-size:22px; font-weight:700; }
+
+  .ring-wrap{ display:flex; align-items:center; justify-content:center; padding:12px 0 4px; }
+  .ring-wrap .center{ position:absolute; display:flex; flex-direction:column; align-items:center; }
+  .ring-wrap .pct{ font-size:40px; font-weight:700; animation: reveal 0.9s ease-out; }
+  @keyframes reveal{ from{ opacity:0; transform:scale(0.7); } to{ opacity:1; transform:scale(1); } }
+  .ring-wrap .cap{ font-size:14px; color:var(--text-2); margin-top:2px; }
+  .ring-holder{ position:relative; width:220px; height:220px; display:flex; align-items:center; justify-content:center; }
+
+  .progress-arc{ stroke-dasharray:590.6; stroke-dashoffset:590.6; animation: draw 1.4s ease-out forwards; }
+  @keyframes draw{ to{ stroke-dashoffset:324.8; } }
+  .tip{ position:absolute; left:139px; top:199px; width:12px; height:12px; margin:-6px; border-radius:999px; background:var(--gold-2); box-shadow:0 0 8px rgba(239,201,122,0.9); opacity:0; animation: tipin 0.4s ease-out 1.1s forwards, tipglow 2s ease-in-out infinite 1.5s; }
+  @keyframes tipin{ to{ opacity:1; } }
+  @keyframes tipglow{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.3); } }
+
+  .card{ background:var(--surface); border-radius:18px; box-shadow:0 6px 14px rgba(0,0,0,0.3); }
+  .stat-card{ padding:6px 20px; }
+  .row{ display:flex; align-items:center; justify-content:space-between; height:56px; }
+  .row .k{ font-size:14px; color:var(--text-2); }
+  .row .v{ font-size:14px; font-weight:700; }
+  .sep{ height:1px; background:var(--rule); }
+  .note{ font-size:11px; color:var(--text-3); font-style:italic; text-align:right; padding:6px 0 4px; }
+
+  .elev-card{ padding:18px 18px 20px; display:flex; flex-direction:column; gap:10px; min-height:150px; }
+  .elev-title{ font-size:15px; font-weight:700; }
+  .elev-empty{ flex:1; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--text-3); text-align:center; }
+
+  .navbar{ flex:0 0 78px; background:var(--surface); display:flex; }
+  .navtab{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-2); position:relative; }
+  .navtab svg{ width:22px; height:22px; }
+  .navtab .lbl{ font-size:10px; }
+  .navtab.active{ color:var(--sky-2); }
+  .navtab.active::after{ content:""; position:absolute; top:4px; width:16px; height:3px; border-radius:999px; background:var(--sky-2); box-shadow:0 0 6px rgba(143,192,239,0.9); animation: dotpulse 1.6s ease-in-out infinite; }
+  @keyframes dotpulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.5; } }
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="content">
+    <div class="header">
+      <svg class="g-icon" viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 1l2.5 4h-5L12 1zM9 6h6l1.4 3H7.6L9 6zm-2 4h10l1.2 3H5.8L7 10zm-1.5 4h13l1.6 4H4l1.5-4zM4 19h16v2H4v-2z"/></svg>
+      <div class="title">Your Progress</div>
+    </div>
+
+    <div class="ring-wrap">
+      <div class="ring-holder">
+        <svg width="220" height="220" viewBox="0 0 220 220" style="transform:rotate(-90deg); overflow:visible;">
+          <defs>
+            <linearGradient id="arcgrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4C8C4A"/>
+              <stop offset="55%" stop-color="#4A86D4"/>
+              <stop offset="100%" stop-color="#EFC97A"/>
+            </linearGradient>
+          </defs>
+          <circle cx="110" cy="110" r="94" fill="none" stroke="#294436" stroke-width="18"/>
+          <circle class="progress-arc" cx="110" cy="110" r="94" fill="none" stroke="url(#arcgrad)" stroke-width="18" stroke-linecap="round"/>
+        </svg>
+        <div class="tip"></div>
+        <div class="center"><div class="pct">45%</div><div class="cap">Completed</div></div>
+      </div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="row"><div class="k">Total Distance</div><div class="v">2.1 km</div></div>
+      <div class="sep"></div>
+      <div class="row"><div class="k">Completed</div><div class="v">945 m</div></div>
+      <div class="sep"></div>
+      <div class="row"><div class="k">Remaining</div><div class="v">1.15 km</div></div>
+      <div class="sep"></div>
+      <div class="row"><div class="k">ETA</div><div class="v">38 min</div></div>
+      <div class="sep"></div>
+      <div class="row"><div class="k">Steps Climbed</div><div class="v">~1,250</div></div>
+      <div class="note">estimated from average stride</div>
+    </div>
+
+    <div class="card elev-card">
+      <div class="elev-title">Elevation Profile</div>
+      <div class="elev-empty">Elevation data unavailable for this route yet.</div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polygon points="12,7 14,12 12,17 10,12" fill="currentColor" stroke="none"/></svg><span class="lbl">Navigate</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="9,3 3,6 3,20 9,17 15,20 21,17 21,3 15,6 9,3"/><line x1="9" y1="3" x2="9" y2="17"/><line x1="15" y1="6" x2="15" y2="20"/></svg><span class="lbl">Map</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.5 4h-5L12 2zM9 6.5h6l1.2 2.5H7.8L9 6.5zm-1.6 3.5h9.2l1.1 2.5H6.3L7.4 10zm-1.4 3.5h11.6l1.4 3.5H4.6L6 13.5zM4 19h16v2H4v-2z"/></svg><span class="lbl">Landmarks</span></div>
+    <div class="navtab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span class="lbl">Progress</span></div>
+    <div class="navtab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

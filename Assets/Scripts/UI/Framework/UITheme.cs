@@ -7,46 +7,52 @@ namespace AlipiriAR.UI
     /// <summary>
     /// Single source of truth for every colour, spacing and radius value in the app.
     ///
-    /// Palette is "Stone &amp; Copper" — granite ground, copper accent in place of the original
-    /// tech-blue, warm ivory text instead of cool blue-white. Chosen over three other devotional
-    /// directions (Temple Gold, Dawn Saffron, Serene Lotus) explicitly for this app's outdoor
-    /// constraints: a dark ground stays legible against sunlight glare and reads consistently
-    /// behind the live AR camera passthrough regardless of what's behind it (sky, stone, crowd),
-    /// where a light/glass palette would wash out; dark UI is also the cheaper draw on OLED across
-    /// the 2-4 hour walk this app is used for (see the battery discussion in Docs/update1.md §10).
-    /// Every value below was previously transcribed from the 11 mockup screens in Assets/Imgaes/
-    /// (PLAN.md §05) with a tech-blue accent; only the hue story changed here, not the structure —
-    /// every screen keeps reading off these same names.
+    /// Palette is "Green Hills + Blue" — forest-green ground and map terrain (the stairway's real
+    /// Seshachalam hill setting), sky blue for every interactive/active state (AR pill, active tab,
+    /// progress fill, primary button, and the user's live-location marker — the familiar blue-dot
+    /// map convention), and temple gold reserved for gopuram iconography and landmark markers.
+    /// Replaces the earlier "Stone &amp; Copper" (granite/copper) palette, chosen with the user
+    /// directly against a live design canvas exploring a devotional marigold-and-maroon direction
+    /// alongside this one. Same outdoor-legibility reasoning as before still holds: a dark ground
+    /// stays legible against sunlight glare and reads consistently behind the live AR camera
+    /// passthrough regardless of what's behind it (sky, stone, crowd), where a light/glass palette
+    /// would wash out; dark UI is also the cheaper draw on OLED across the 2-4 hour walk this app is
+    /// used for (see the battery discussion in Docs/update1.md §10). Only the hue story changed
+    /// here, not the structure — every screen keeps reading off these same names.
     /// </summary>
     public static class UITheme
     {
         // ---- Colour ----------------------------------------------------------
-        public static readonly Color Ground = FromHex("#211E1B");
-        public static readonly Color GroundDeep = FromHex("#17140F");
-        /// <summary>Map basemap fill — a real terrain green instead of the navy graph-paper look
-        /// the demo basemap used before, since the user wants the map to read as land, not a grid.
+        public static readonly Color Ground = FromHex("#14231A");
+        public static readonly Color GroundDeep = FromHex("#0D1811");
+        /// <summary>Map basemap fill — a real terrain green so the map reads as land, not a grid.
         /// Left as true terrain green rather than warmed toward the rest of this palette — it
         /// represents real vegetation on the map, not app chrome.</summary>
-        public static readonly Color TerrainGreen = FromHex("#173A27");
-        public static readonly Color Surface = FromHex("#2A2723");
-        public static readonly Color SurfaceRaised = FromHex("#3A3631");
-        public static readonly Color Rule = FromHex("#4A4038");
+        public static readonly Color TerrainGreen = FromHex("#20392A");
+        public static readonly Color Surface = FromHex("#1D3226");
+        public static readonly Color SurfaceRaised = FromHex("#294436");
+        public static readonly Color Rule = FromHex("#3B5C48");
 
-        public static readonly Color TextPrimary = FromHex("#EDE6DA");
-        public static readonly Color TextSecondary = FromHex("#9A9284");
-        public static readonly Color TextTertiary = FromHex("#6B655C");
+        public static readonly Color TextPrimary = FromHex("#EAF2E9");
+        public static readonly Color TextSecondary = FromHex("#9FB8A8");
+        public static readonly Color TextTertiary = FromHex("#6E8A79");
 
-        /// <summary>Copper — was tech-blue (#2F7BFF). The one hue swap that reads everywhere:
-        /// every "AR" pill, active tab, progress fill and primary button inherits it from here.</summary>
-        public static readonly Color Accent = FromHex("#B87333");
-        public static readonly Color AccentDim = FromHex("#3D2E1E");
-        public static readonly Color Success = FromHex("#7A9B68");
-        public static readonly Color SuccessDim = FromHex("#26301F");
-        public static readonly Color Warning = FromHex("#D4915A");
-        public static readonly Color WarningDim = FromHex("#3D2D1C");
-        public static readonly Color Critical = FromHex("#C1502E");
-        public static readonly Color CriticalDim = FromHex("#3A1F16");
-        public static readonly Color Gold = FromHex("#C9A227");
+        /// <summary>Sky blue — was copper (#B87333), tech-blue before that. The one hue swap that
+        /// reads everywhere: every "AR" pill, active tab, progress fill, primary button and the
+        /// user's live-location marker (UserMarker's halo/puck) inherit it from here.</summary>
+        public static readonly Color Accent = FromHex("#4A86D4");
+        public static readonly Color AccentDim = FromHex("#1F3247");
+        /// <summary>Leaf green — landmark-visited checkmarks and other "done" states. Kept distinct
+        /// from Accent now that Accent is blue, so completion still reads as green.</summary>
+        public static readonly Color Success = FromHex("#4C8C4A");
+        public static readonly Color SuccessDim = FromHex("#1E3320");
+        public static readonly Color Warning = FromHex("#D98C2B");
+        public static readonly Color WarningDim = FromHex("#3A2A14");
+        public static readonly Color Critical = FromHex("#B94A34");
+        public static readonly Color CriticalDim = FromHex("#331A14");
+        /// <summary>Temple gold — gopuram iconography and landmark markers only; never used for
+        /// interactive/active state (that's Accent) or completion (that's Success).</summary>
+        public static readonly Color Gold = FromHex("#D9A441");
 
         /// <summary>Camera-feed glass overlay used on the AR HUD cards (top pill, bottom stat card).</summary>
         public static readonly Color Glass = new Color(Surface.r, Surface.g, Surface.b, 0.82f);
