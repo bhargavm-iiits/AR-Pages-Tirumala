@@ -86,3 +86,14 @@ Assets/StreamingAssets/map_api_key.txt.meta
 # ProjectSettings.asset etc. are meant to be tracked), so this needs its own explicit line or the
 # next commit from anyone who's set an API key in the ARCore Extensions Inspector leaks it.
 ProjectSettings/ARCoreExtensionsProjectSettings.json
+
+*.exe
+*.apk
+
+
+*_BackUpThisFolder*
+Builds/
+Library/
+Temp/
+Logs/
+

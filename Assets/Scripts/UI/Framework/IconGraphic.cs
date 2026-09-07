@@ -12,7 +12,8 @@ namespace AlipiriAR.UI
         Hamburger, Back, Close, Search, Speaker, SpeakerMuted,
         Compass, Sun, Pause, Check, Warning, Plus, Minus,
         Recenter, North, Gopuram, Droplet, Statue, Steps, Medical, Shop, Info,
-        Globe, Ruler, Haptic, Map, Profile, Export, Gear
+        Globe, Ruler, Haptic, Map, Profile, Export, Gear,
+        MapPin, NavigationArrow, TaskComplete
     }
 
     /// <summary>Attach to any Image to render one of the procedural icons. Colour comes from
@@ -328,18 +329,114 @@ namespace AlipiriAR.UI
                 }
                 case IconType.Gopuram:
                 {
-                    // Simplified stepped-pyramid silhouette — the placeholder brand mark
-                    // until an authored asset replaces it (PLAN.md §03).
-                    float a = 0f;
-                    for (int tier = 0; tier < 4; tier++)
+                    // Filled tapering tower + plinth (Docs/Icons/temple-india-svgrepo-com.svg) —
+                    // replaces the earlier thin-stroke tier outline, which read as an abstract
+                    // scribble rather than a recognizable temple silhouette at bottom-nav tab size
+                    // (~20-24px on screen). Solid fill with small periodic step-outs reads as a
+                    // tiered gopuram at a glance even that small.
+                    //
+                    // Every offset below is relative to c (the icon's centre), same convention as
+                    // every other case in this method (which all compare p against c + offset via
+                    // StrokeAlpha/CircleAlpha) — the first version of this case compared p.x/p.y
+                    // directly against bare offsets with no +c, so the whole shape rendered
+                    // relative to the texture's corner instead of its centre (looked like a
+                    // folder/flag icon instead of a temple — caught on-device).
+                    float baseYAbs = c.y + r * 0.85f;   // authored-Y convention: +offset = down/base
+                    float topYAbs = c.y - r * 0.95f;    // -offset = up/pinnacle
+                    float baseHalf = Size * 0.4f;
+                    float topHalf = Size * 0.06f;
+
+                    float body = 0f;
+                    if (p.y <= baseYAbs && p.y >= topYAbs)
                     {
-                        float ty = r * 0.75f - tier * (r * 0.5f);
-                        float half = (Size * 0.4f) * (1f - tier * 0.2f);
-                        a = Mathf.Max(a, UIShapes.StrokeAlpha(p, c + new Vector2(-half, ty), c + new Vector2(half, ty), t * 0.7f));
-                        a = Mathf.Max(a, UIShapes.StrokeAlpha(p, c + new Vector2(-half, ty), c + new Vector2(-half * 0.8f, ty - r * 0.5f), t * 0.6f));
-                        a = Mathf.Max(a, UIShapes.StrokeAlpha(p, c + new Vector2(half, ty), c + new Vector2(half * 0.8f, ty - r * 0.5f), t * 0.6f));
+                        float h = Mathf.InverseLerp(baseYAbs, topYAbs, p.y); // 0 at base, 1 at pinnacle
+                        float half = Mathf.Lerp(baseHalf, topHalf, h);
+                        // Four small outward step-outs per tier boundary, so the taper doesn't
+                        // read as one smooth triangle but as a stack of shrinking tiers.
+                        if (Mathf.Repeat(h * 4f, 1f) < 0.18f) half += Size * 0.025f;
+                        body = Mathf.Clamp01(half - Mathf.Abs(p.x - c.x) + 1.5f);
                     }
-                    return a;
+
+                    // Plinth — a wide flat base band the tower sits on.
+                    float plinthHalf = baseHalf + Size * 0.06f;
+                    float plinth = (p.y <= baseYAbs + t * 0.8f && p.y >= baseYAbs - t * 0.3f)
+                        ? Mathf.Clamp01(plinthHalf - Mathf.Abs(p.x - c.x) + 1.5f)
+                        : 0f;
+
+                    // Finial — small dome/dot capping the pinnacle.
+                    float finial = UIShapes.CircleAlpha(p, new Vector2(c.x, topYAbs - Size * 0.05f), Size * 0.055f);
+
+                    return Mathf.Max(body, Mathf.Max(plinth, finial));
+                }
+                case IconType.MapPin:
+                {
+                    // Classic teardrop map marker (Docs/Icons/map-map-marker-svgrepo-com.svg) —
+                    // a circle whose bottom pinches to a point, with a small punched-out hole
+                    // near the top reading as the pin's "eye".
+                    var tip = c + new Vector2(0, r * 0.95f);
+                    var bulbCenter = c + new Vector2(0, -r * 0.15f);
+                    float bulbR = Size * 0.26f;
+                    float body = UIShapes.CircleAlpha(p, bulbCenter, bulbR);
+                    // Two tangent strokes from the bulb's lower sides down to the tip approximate
+                    // the teardrop's taper without a dedicated polygon rasteriser.
+                    float taperL = UIShapes.StrokeAlpha(p, bulbCenter + new Vector2(-bulbR * 0.75f, bulbR * 0.5f), tip, t * 0.9f);
+                    float taperR = UIShapes.StrokeAlpha(p, bulbCenter + new Vector2(bulbR * 0.75f, bulbR * 0.5f), tip, t * 0.9f);
+                    float shape = Mathf.Max(body, Mathf.Max(taperL, taperR));
+                    // Punch the hole out only where the pin shape is actually solid, so it reads
+                    // as a hole rather than a separate ring floating in front of the pin.
+                    float hole = UIShapes.CircleAlpha(p, bulbCenter, bulbR * 0.42f);
+                    return Mathf.Max(0f, shape - hole);
+                }
+                case IconType.NavigationArrow:
+                {
+                    // Location/navigation dart (Docs/Icons/navigation-svgrepo-com.svg) — a
+                    // slim arrowhead pointing up-right with a notched tail, built from three
+                    // strokes forming the two long edges plus the tail notch.
+                    float ang = -Mathf.PI / 4f; // up-right, matching the reference icon's tilt
+                    var rot = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+                    var perp = new Vector2(-rot.y, rot.x);
+                    var tipP = c + rot * (r * 1.1f);
+                    var tailL = c - rot * (r * 0.85f) + perp * (r * 0.55f);
+                    var tailR = c - rot * (r * 0.85f) - perp * (r * 0.55f);
+                    var notch = c - rot * (r * 0.35f);
+                    return Mathf.Max(
+                        UIShapes.StrokeAlpha(p, tipP, tailL, t),
+                        Mathf.Max(UIShapes.StrokeAlpha(p, tipP, tailR, t),
+                        Mathf.Max(UIShapes.StrokeAlpha(p, tailL, notch, t), UIShapes.StrokeAlpha(p, tailR, notch, t))));
+                }
+                case IconType.TaskComplete:
+                {
+                    // Checklist page + completion badge (Docs/Icons/task-complete-svgrepo-com.svg)
+                    // — a page outline with three list lines, plus a checkmark badge overlapping
+                    // its bottom-right corner.
+                    float pageW = Size * 0.34f, pageH = Size * 0.42f;
+                    var pTl = c + new Vector2(-pageW, -pageH);
+                    var pTr = c + new Vector2(pageW, -pageH);
+                    var pBl = c + new Vector2(-pageW, pageH);
+                    var pBr = c + new Vector2(pageW, pageH);
+                    float outline = Mathf.Max(
+                        UIShapes.StrokeAlpha(p, pTl, pTr, t * 0.7f),
+                        Mathf.Max(UIShapes.StrokeAlpha(p, pTl, pBl, t * 0.7f),
+                        Mathf.Max(UIShapes.StrokeAlpha(p, pTr, pBr, t * 0.7f),
+                                  UIShapes.StrokeAlpha(p, pBl, pBr, t * 0.7f))));
+                    float lines = 0f;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        float ly = -pageH * 0.5f + i * (pageH * 0.5f);
+                        lines = Mathf.Max(lines, UIShapes.StrokeAlpha(p, c + new Vector2(-pageW * 0.55f, ly), c + new Vector2(pageW * 0.55f, ly), t * 0.55f));
+                    }
+                    var badgeCenter = c + new Vector2(pageW * 0.85f, pageH * 0.85f);
+                    float badgeR = Size * 0.2f;
+                    float badge = UIShapes.CircleAlpha(p, badgeCenter, badgeR);
+                    // Cut the checkmark OUT of the filled badge (like MapPin's pupil) rather than
+                    // stroking it on top — a same-tint stroke over a same-tint fill wouldn't read
+                    // as a mark at all under this single-colour icon system.
+                    float badgeCheck = Mathf.Max(
+                        UIShapes.StrokeAlpha(p, badgeCenter + new Vector2(-badgeR * 0.45f, 0f), badgeCenter + new Vector2(-badgeR * 0.1f, -badgeR * 0.4f), t * 0.55f),
+                        UIShapes.StrokeAlpha(p, badgeCenter + new Vector2(-badgeR * 0.1f, -badgeR * 0.4f), badgeCenter + new Vector2(badgeR * 0.5f, badgeR * 0.35f), t * 0.55f));
+                    float badgeWithHole = Mathf.Max(0f, badge - badgeCheck);
+                    // The badge always wins over whatever page content sits under it.
+                    return Mathf.Max(Mathf.Max(outline, lines) * (1f - badge), badgeWithHole);
                 }
                 default:
                     return 0f;

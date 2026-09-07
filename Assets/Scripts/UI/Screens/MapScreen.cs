@@ -71,7 +71,14 @@ namespace AlipiriAR.UI
             _userMarker = UserMarker.Create(_mapView);
             _userMarker.SetAccuracyMeters(8f);
 
-            _mapView.SetZoom(16f);
+            // Was 16f, then MapView.MaxZoom (20f, MapView's old ceiling) — opening at the
+            // absolute max made every ordinary landmark pin its own full-size marker, and dense
+            // clusters (several "Alipiri NNN step" landmarks sit only 20-50m apart) crowded into
+            // an unreadable jumble (user report). One step back from max keeps the redesign's
+            // callout cards showing (well above PoiMarkerLayer.DeclutterZoom's 17.5f) while
+            // giving those dense clusters breathing room; MaxZoom (20f) is still there for anyone
+            // who deliberately pinch-zooms in further.
+            _mapView.SetZoom(MapView.MaxZoom - 1f);
             _mapView.CenterOn(waypoints[0].Longitude, waypoints[0].Latitude);
 
             BuildTopPill(root);

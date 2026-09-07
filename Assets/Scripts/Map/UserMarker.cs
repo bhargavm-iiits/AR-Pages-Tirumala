@@ -41,7 +41,9 @@ namespace AlipiriAR.Map
             UIFactory.SetSize(_haloRt, 60f, 60f);
             var haloImg = _haloRt.gameObject.AddComponent<Image>();
             haloImg.sprite = UIShapes.Circle();
-            haloImg.color = new Color(UITheme.Accent.r, UITheme.Accent.g, UITheme.Accent.b, 0.18f);
+            // Cyan, not gold — the redesign's map beacon pairs a cyan pulse ring around the gold
+            // puck (Docs/Images/New UI #2), rather than one hue used alone for both.
+            haloImg.color = new Color(UITheme.LocationBeacon.r, UITheme.LocationBeacon.g, UITheme.LocationBeacon.b, 0.18f);
 
             _puckRt = UIFactory.CreateRect("Puck", _rt);
             _puckRt.anchorMin = _puckRt.anchorMax = new Vector2(0.5f, 0.5f);

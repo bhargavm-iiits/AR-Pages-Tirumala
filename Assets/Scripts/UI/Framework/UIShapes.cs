@@ -12,6 +12,7 @@ namespace AlipiriAR.UI
     {
         private const int Padding = 4; // antialiasing border baked into every generated texture
         private static readonly Dictionary<int, Sprite> RoundedRectCache = new();
+        private static readonly Dictionary<int, Sprite> RoundedRectOutlineCache = new();
         private static readonly Dictionary<int, Sprite> RingCache = new();
         private static Sprite _circleSprite;
         private static Sprite _chevronSprite;
@@ -57,6 +58,52 @@ namespace AlipiriAR.UI
 
         /// <summary>Full-stadium pill — a rounded rect whose radius equals half its own size.</summary>
         public static Sprite Pill() => RoundedRect(64);
+
+        /// <summary>Hollow rounded-rect stroke — the redesign's "glowing gold border" on active
+        /// cards (Docs/Images/New UI, e.g. Landmarks' active waypoint, Settings' profile card).
+        /// Same 9-slice approach as <see cref="RoundedRect"/> so it stretches cleanly to any card
+        /// size; the corner radius must match the card it outlines or the ring and the card's own
+        /// rounded corners won't line up.</summary>
+        public static Sprite RoundedRectOutline(int radius, int thickness)
+        {
+            int key = radius * 10000 + thickness;
+            if (RoundedRectOutlineCache.TryGetValue(key, out var cached)) return cached;
+
+            int half = radius + Padding;
+            int size = half * 2;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            var pixels = new Color32[size * size];
+            var center = new Vector2(size / 2f, size / 2f);
+            var halfBox = new Vector2(size / 2f - Padding, size / 2f - Padding);
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    var p = new Vector2(x + 0.5f, y + 0.5f) - center;
+                    float outerAlpha = RoundedBoxAlpha(p, halfBox, radius);
+                    float innerAlpha = RoundedBoxAlpha(p, halfBox - Vector2.one * thickness, Mathf.Max(radius - thickness, 0f));
+                    float alpha = Mathf.Clamp01(outerAlpha - innerAlpha);
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, false);
+
+            float border = radius + Padding;
+            var sprite = Sprite.Create(
+                tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            sprite.name = $"RoundedRectOutline_{radius}_{thickness}";
+            RoundedRectOutlineCache[key] = sprite;
+            return sprite;
+        }
 
         /// <summary>A stroked ring/annulus for progress indicators (used with Image.Type.Filled,
         /// FillMethod.Radial360 to draw the Progress screen's completion ring).</summary>

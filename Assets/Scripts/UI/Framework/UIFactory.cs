@@ -107,6 +107,22 @@ namespace AlipiriAR.UI
             return img;
         }
 
+        /// <summary>A 1px luminous gold stroke overlaid on a card/pill's edge — the redesign's
+        /// "active/highlighted" treatment (Docs/Images/New UI: Landmarks' next waypoint, Settings'
+        /// profile card). Draw AFTER the card's own fill so the stroke sits on top of it; radius
+        /// must match the card's own corner radius or the two won't line up.</summary>
+        public static Image GlowBorder(Transform parent, float radius, Color? color = null, float thickness = 3f)
+        {
+            var rt = CreateRect("GlowBorder", parent);
+            StretchFill(rt);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = UIShapes.RoundedRectOutline(Mathf.RoundToInt(radius), Mathf.RoundToInt(thickness));
+            img.type = Image.Type.Sliced;
+            img.color = color ?? UITheme.GlassBorder;
+            img.raycastTarget = false;
+            return img;
+        }
+
         public static Image Pill(Transform parent, Color? color = null)
         {
             var rt = CreateRect("Pill", parent);

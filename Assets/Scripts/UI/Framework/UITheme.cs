@@ -7,55 +7,67 @@ namespace AlipiriAR.UI
     /// <summary>
     /// Single source of truth for every colour, spacing and radius value in the app.
     ///
-    /// Palette is "Green Hills + Blue" — forest-green ground and map terrain (the stairway's real
-    /// Seshachalam hill setting), sky blue for every interactive/active state (AR pill, active tab,
-    /// progress fill, primary button, and the user's live-location marker — the familiar blue-dot
-    /// map convention), and temple gold reserved for gopuram iconography and landmark markers.
-    /// Replaces the earlier "Stone &amp; Copper" (granite/copper) palette, chosen with the user
-    /// directly against a live design canvas exploring a devotional marigold-and-maroon direction
-    /// alongside this one. Same outdoor-legibility reasoning as before still holds: a dark ground
-    /// stays legible against sunlight glare and reads consistently behind the live AR camera
-    /// passthrough regardless of what's behind it (sky, stone, crowd), where a light/glass palette
-    /// would wash out; dark UI is also the cheaper draw on OLED across the 2-4 hour walk this app is
-    /// used for (see the battery discussion in Docs/update1.md §10). Only the hue story changed
-    /// here, not the structure — every screen keeps reading off these same names.
+    /// Palette is "Sacred Gold on Deep Forest" — a devotional-glass redesign (Docs/Images/New UI,
+    /// tirumala_ui_redesign.md) replacing the earlier "Green Hills + Blue" scheme: deep forest
+    /// green ground/glass panels, sacred gold for every interactive/active state (AR pill, active
+    /// tab, progress fill, primary button — Accent itself is now the gold, not a separate token),
+    /// divine amber reserved for gopuram iconography/badges (Gold), and temple green kept distinct
+    /// for "done"/completion states (Success). LocationBeacon (cyan) is the one addition — the
+    /// map's live-position marker in the new mockups pairs a cyan pulse ring around a gold dot,
+    /// rather than a single accent-coloured puck. Same outdoor-legibility reasoning as before still
+    /// holds: a dark ground stays legible against sunlight glare and reads consistently behind the
+    /// live AR camera passthrough regardless of what's behind it (sky, stone, crowd); dark UI is
+    /// also the cheaper draw on OLED across the 2-4 hour walk this app is used for (see the battery
+    /// discussion in Docs/update1.md §10). Only the hue story changed here, not the structure —
+    /// every screen keeps reading off these same names.
     /// </summary>
     public static class UITheme
     {
         // ---- Colour ----------------------------------------------------------
-        public static readonly Color Ground = FromHex("#14231A");
-        public static readonly Color GroundDeep = FromHex("#0D1811");
+        public static readonly Color Ground = FromHex("#0E1B16");
+        public static readonly Color GroundDeep = FromHex("#0A140F");
         /// <summary>Map basemap fill — a real terrain green so the map reads as land, not a grid.
         /// Left as true terrain green rather than warmed toward the rest of this palette — it
         /// represents real vegetation on the map, not app chrome.</summary>
-        public static readonly Color TerrainGreen = FromHex("#20392A");
-        public static readonly Color Surface = FromHex("#1D3226");
-        public static readonly Color SurfaceRaised = FromHex("#294436");
-        public static readonly Color Rule = FromHex("#3B5C48");
+        public static readonly Color TerrainGreen = FromHex("#1B2E22");
+        /// <summary>"Emerald Glass" — frosted card/panel base (mockup: #183528 at 70-80% opacity,
+        /// applied here via <see cref="Glass"/>).</summary>
+        public static readonly Color Surface = FromHex("#183528");
+        public static readonly Color SurfaceRaised = FromHex("#223F30");
+        public static readonly Color Rule = FromHex("#2E4A3B");
 
-        public static readonly Color TextPrimary = FromHex("#EAF2E9");
-        public static readonly Color TextSecondary = FromHex("#9FB8A8");
-        public static readonly Color TextTertiary = FromHex("#6E8A79");
+        public static readonly Color TextPrimary = FromHex("#F6F7F4");
+        public static readonly Color TextSecondary = FromHex("#A7B3AB");
+        public static readonly Color TextTertiary = FromHex("#71847A");
 
-        /// <summary>Sky blue — was copper (#B87333), tech-blue before that. The one hue swap that
-        /// reads everywhere: every "AR" pill, active tab, progress fill, primary button and the
-        /// user's live-location marker (UserMarker's halo/puck) inherit it from here.</summary>
-        public static readonly Color Accent = FromHex("#4A86D4");
-        public static readonly Color AccentDim = FromHex("#1F3247");
-        /// <summary>Leaf green — landmark-visited checkmarks and other "done" states. Kept distinct
-        /// from Accent now that Accent is blue, so completion still reads as green.</summary>
-        public static readonly Color Success = FromHex("#4C8C4A");
+        /// <summary>Sacred Gold — the redesign's single hue that reads everywhere: every "AR"
+        /// pill, active tab, progress fill, primary button, filter chip and glowing trail/border
+        /// inherit it from here. Was sky blue, copper, tech-blue before that.</summary>
+        public static readonly Color Accent = FromHex("#F6C54B");
+        public static readonly Color AccentDim = FromHex("#3A2E13");
+        /// <summary>Temple green — landmark-visited checkmarks and other "done" states. Kept
+        /// distinct from Accent so completion still reads apart from the interactive gold.</summary>
+        public static readonly Color Success = FromHex("#62D26F");
         public static readonly Color SuccessDim = FromHex("#1E3320");
-        public static readonly Color Warning = FromHex("#D98C2B");
+        /// <summary>Divine Amber — doubles as the mockup's Warning tone (both a warm secondary
+        /// amber, no separate hue specified for Warning in the redesign doc).</summary>
+        public static readonly Color Warning = FromHex("#D9A326");
         public static readonly Color WarningDim = FromHex("#3A2A14");
         public static readonly Color Critical = FromHex("#B94A34");
         public static readonly Color CriticalDim = FromHex("#331A14");
-        /// <summary>Temple gold — gopuram iconography and landmark markers only; never used for
-        /// interactive/active state (that's Accent) or completion (that's Success).</summary>
-        public static readonly Color Gold = FromHex("#D9A441");
+        /// <summary>Divine Amber — gopuram iconography, badges and landmark markers; never used
+        /// for interactive/active state (that's Accent) or completion (that's Success).</summary>
+        public static readonly Color Gold = FromHex("#D9A326");
+        /// <summary>Cyan pulse ring around the map's live-position dot (mockup's radar beacon) —
+        /// the one marker that pairs a second hue with Accent instead of using it alone.</summary>
+        public static readonly Color LocationBeacon = FromHex("#4DD9E0");
 
         /// <summary>Camera-feed glass overlay used on the AR HUD cards (top pill, bottom stat card).</summary>
         public static readonly Color Glass = new Color(Surface.r, Surface.g, Surface.b, 0.82f);
+        /// <summary>1px luminous edge stroke on glass cards (mockup: rgba(246,197,75,0.25)) — see
+        /// UIFactory.GlowBorderCard. Alpha raised slightly over the mockup's spec since flat UGUI
+        /// rendering has no bloom/blur to help a hairline read against a dark card.</summary>
+        public static readonly Color GlassBorder = new Color(0.965f, 0.773f, 0.294f, 0.35f);
 
         // ---- Spacing (px @ 1080 reference width) ------------------------------
         public const float SpaceXS = 6f;

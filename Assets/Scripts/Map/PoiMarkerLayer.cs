@@ -64,10 +64,17 @@ namespace AlipiriAR.Map
         // original size) — smaller cards need less real-world separation to clear each other,
         // which matters since the six Dashavatara landmarks sit 220-300m apart, closer than a
         // full-size card's own reach even at max zoom.
-        private const float LeaderLineLength = 24f;
+        // Raised from 24 — the callout card was landing close enough to the drawn gold route
+        // line to visually overlap it (user report, on-device). Still comfortably under the
+        // closest avatar pair's own clearance budget (~223m at zoom 16 is ~130px on screen,
+        // per this file's own DeclutterZoom comment — a card reaching 40+24=64px from its point
+        // stays well inside that).
+        private const float LeaderLineLength = 40f;
         private const float LeaderLineWidth = 3f;
-        private const float CalloutWidth = 132f;
-        private const float CalloutImageSize = 68f;
+        private const float CalloutWidth = 264f;
+        // Was 64 — user report wanted the Dashavatara portraits reading larger; widened alongside
+        // CalloutWidth so the text column doesn't get squeezed down to nothing.
+        private const float CalloutImageSize = 92f;
 
         /// <summary>Total steps the whole route is estimated at — set from RouteResult.
         /// TotalStepsEstimate at construction (Docs/update1.md §02 F-05: this used to be its own
@@ -92,21 +99,9 @@ namespace AlipiriAR.Map
             ["Sri Kalki Avataram"] = "The Future Avatar",
         };
 
-        /// <summary>StreamingAssets path for the six avatars this route's landmarks and
-        /// Docs/Dashavatar's supplied images actually agree on. Deliberately a SUBSET of
-        /// AvatarSubtitles above — Balarama and Kalki have no portrait, since no matching image
-        /// exists, and (unlike AvatarSubtitles, display-only) this dict also decides which
-        /// landmarks get the point+callout treatment at all. Nothing here fabricates a portrait
-        /// for a landmark that doesn't have real image content behind it.</summary>
-        private static readonly Dictionary<string, string> AvatarPortraits = new()
-        {
-            ["Mathsyavataram"] = "Images/Dashavatar/matsya.png",
-            ["Kurma Avataram"] = "Images/Dashavatar/kurma.png",
-            ["Varaha Avataram"] = "Images/Dashavatar/varaha.png",
-            ["Sri Narasimha Avataram"] = "Images/Dashavatar/narasimha.png",
-            ["Sri Vamana Avataram"] = "Images/Dashavatar/vamana.png",
-            ["Sri Krishna Avataram"] = "Images/Dashavatar/krishna.png",
-        };
+        // AvatarPortraits (which landmarks get the point+callout treatment at all, and where
+        // their portrait lives) moved to Data.AvatarPortraits — LandmarkPopup needs the same
+        // mapping to show the real portrait instead of falling back to the generic per-type icon.
 
         private readonly List<(RectTransform pinRt, RectTransform dotRt)> _plainMarkers = new();
         private readonly List<(Vector2 pos, RectTransform pointRt, RectTransform leaderRt, RectTransform calloutRt, float sideSign)> _highlightMarkers = new();
@@ -147,7 +142,7 @@ namespace AlipiriAR.Map
             // map, even though that offset is real and correctly drives AR placement/geofencing
             // elsewhere (LandmarkData.SnappedLatitude/Longitude, resolved once in JsonDatabase).
             Vector2 pos = _map.WorldPositionRelative(landmark.SnappedLongitude, landmark.SnappedLatitude);
-            bool highlighted = AvatarPortraits.TryGetValue(landmark.Name, out string portraitPath);
+            bool highlighted = AlipiriAR.Data.AvatarPortraits.TryGet(landmark.Name, out string portraitPath);
 
             if (highlighted)
             {
@@ -180,16 +175,24 @@ namespace AlipiriAR.Map
             dotRingImg.color = new Color(1f, 1f, 1f, 0.9f);
             dotRingImg.raycastTarget = false;
 
+            // Centre-pivoted (anchor AND pivot both (0.5,0.5)), not the standing-pin bottom-pivot
+            // convention (anchor (0.5,1), pivot (0.5,0)) this used before — that convention is
+            // correct for a teardrop pin with a pointed tip touching down, but this is a plain
+            // circle with no tip, so bottom-pivoting it put the circle's centre a full radius
+            // ABOVE the real snapped path position — exactly the "markers off the path" symptom
+            // reported (visually most obvious on diagonal path segments, where an upward-only
+            // offset reads as sideways drift relative to the line). Same fix already applied to
+            // BuildAvatarPoint below; this pass brings ordinary pins in line with it.
             var pinRt = UIFactory.CreateRect($"Pin_{landmark.Id}", parent);
-            pinRt.anchorMin = pinRt.anchorMax = new Vector2(0.5f, 1f);
-            pinRt.pivot = new Vector2(0.5f, 0f);
+            pinRt.anchorMin = pinRt.anchorMax = new Vector2(0.5f, 0.5f);
+            pinRt.pivot = new Vector2(0.5f, 0.5f);
             pinRt.anchoredPosition = pos;
             UIFactory.SetSize(pinRt, NormalPinSize, NormalPinSize);
 
             var shadowRt = UIFactory.CreateRect("Shadow", pinRt);
-            shadowRt.anchorMin = shadowRt.anchorMax = new Vector2(0.5f, 0f);
+            shadowRt.anchorMin = shadowRt.anchorMax = new Vector2(0.5f, 0.5f);
             shadowRt.pivot = new Vector2(0.5f, 0.5f);
-            shadowRt.anchoredPosition = new Vector2(0f, -1f);
+            shadowRt.anchoredPosition = new Vector2(0f, -(NormalPinSize * 0.5f + 1f));
             UIFactory.SetSize(shadowRt, 32f, 12f);
             var shadowImg = shadowRt.gameObject.AddComponent<Image>();
             shadowImg.sprite = UIShapes.Circle();
@@ -276,6 +279,8 @@ namespace AlipiriAR.Map
         /// AWAY from the point as built, not back over it. Both RectTransforms are built at (0,0)
         /// here deliberately — RefreshDeclutter positions them every zoom change, the same reason
         /// every other marker piece in this file does.</summary>
+        /// <summary>Point — leader line — callout card. Smooth rounded rectangular card with glowing
+        /// gold border and horizontal photo + text layout. sideSign is +1 (right) or -1 (left).</summary>
         private (RectTransform leaderRt, RectTransform calloutRt) BuildLeaderAndCallout(Transform parent, LandmarkData landmark, string portraitPath, float sideSign)
         {
             bool isRight = sideSign > 0f;
@@ -291,65 +296,104 @@ namespace AlipiriAR.Map
             var calloutRt = UIFactory.CreateRect($"Callout_{landmark.Id}", parent);
             calloutRt.anchorMin = calloutRt.anchorMax = new Vector2(0.5f, 0.5f);
             calloutRt.pivot = isRight ? new Vector2(0f, 0.5f) : new Vector2(1f, 0.5f);
-            UIFactory.SetSize(calloutRt, CalloutWidth, 0f); // height driven by ContentSizeFitter below
+            UIFactory.SetSize(calloutRt, CalloutWidth, 0f);
 
-            // Curved rectangle, not a pill — the box shape asked for.
-            var bg = UIFactory.Panel(calloutRt, UITheme.Glass, 14f);
+            // Smooth rounded rectangle glass card with glowing golden outline border
+            var bg = UIFactory.Panel(calloutRt, UITheme.Glass, 16f);
             bg.gameObject.name = "CalloutBg";
+            UIFactory.GlowBorder(calloutRt, 16f, UITheme.GlassBorder, 2f);
 
-            var vlg = calloutRt.gameObject.AddComponent<VerticalLayoutGroup>();
-            vlg.childAlignment = TextAnchor.UpperCenter;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.padding = new RectOffset(10, 10, 10, 10);
-            vlg.spacing = 4f;
+            // Horizontal layout: Photo on left, Text info on right
+            var hlg = calloutRt.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.padding = new RectOffset(10, 12, 10, 10);
+            hlg.spacing = 10f;
             var csf = calloutRt.gameObject.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Image sits on top, per the reference — a rounded-square mask with the procedural
-            // type icon as an immediate placeholder, swapped for the real portrait once (if) it
-            // loads (LoadPortraitInto below). A missing/corrupt file just leaves the icon in
-            // place — never fatal, matching PLAN.md §03's whole approach to optional content.
-            var imageSlotRt = UIFactory.CreateRect("ImageSlot", calloutRt);
-            // Both preferredWidth AND preferredHeight — the callout's VerticalLayoutGroup below
-            // has childForceExpandWidth true, which stretches any child lacking an explicit
-            // preferredWidth to the callout's full inner width instead of leaving it square (the
-            // same layout gotcha ARNavigationScreen's own left-rail icons hit and documented).
-            var imageSlotLe = imageSlotRt.gameObject.AddComponent<LayoutElement>();
-            imageSlotLe.preferredWidth = CalloutImageSize;
-            imageSlotLe.preferredHeight = CalloutImageSize;
-            UIFactory.SetSize(imageSlotRt, CalloutImageSize, CalloutImageSize);
+            // Left column: photo, with the step-number pill directly below it (was in the text
+            // column, to the photo's right — user report wanted it moved under the now-larger
+            // photo instead).
+            var imageColRt = UIFactory.CreateRect("ImageCol", calloutRt);
+            var imageColLe = imageColRt.gameObject.AddComponent<LayoutElement>();
+            imageColLe.preferredWidth = CalloutImageSize;
+            var imageColVlg = imageColRt.gameObject.AddComponent<VerticalLayoutGroup>();
+            imageColVlg.childAlignment = TextAnchor.UpperCenter;
+            imageColVlg.childForceExpandWidth = true;
+            imageColVlg.childForceExpandHeight = false;
+            imageColVlg.childControlWidth = true;
+            imageColVlg.childControlHeight = true;
+            imageColVlg.spacing = 6f;
+
+            var imageSlotRt = UIFactory.CreateRect("ImageSlot", imageColRt);
+            imageSlotRt.gameObject.AddComponent<LayoutElement>().preferredHeight = CalloutImageSize;
             var imageBg = imageSlotRt.gameObject.AddComponent<Image>();
-            imageBg.sprite = UIShapes.RoundedRect(10);
+            imageBg.sprite = UIShapes.RoundedRect(12);
             imageBg.type = Image.Type.Sliced;
             imageBg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.5f);
-            UIFactory.CenteredIcon(imageSlotRt, LandmarkVisuals.IconFor(landmark.Type), 40f, Color.white);
+            UIFactory.CenteredIcon(imageSlotRt, LandmarkVisuals.IconFor(landmark.Type), 44f, Color.white);
             StartCoroutine(LoadPortraitInto(imageSlotRt, portraitPath));
 
-            bool hasSubtitle = AvatarSubtitles.TryGetValue(landmark.Name, out string subtitle);
-            string nameText = hasSubtitle ? $"{landmark.Name.ToUpperInvariant()}\n({subtitle})" : landmark.Name.ToUpperInvariant();
-
-            var nameRt = UIFactory.CreateRect("Name", calloutRt);
-            var nameLabel = UIFactory.Label(nameRt, nameText, UITheme.CaptionFontSize,
-                FontStyles.Bold, TextAlignmentOptions.Center, UITheme.TextPrimary);
-            nameLabel.enableWordWrapping = true;
-            // Bumped from 56/30 — CalloutWidth's own shrink (176 to 132, above) leaves less inner
-            // width per line, so a name like "SRI VAMANA AVATARAM" now wraps to two lines before
-            // even reaching its own "(The Dwarf)" line; the old fixed height clipped the third line.
-            nameRt.gameObject.AddComponent<LayoutElement>().preferredHeight = hasSubtitle ? 80f : 44f;
-
+            // Step Badge Pill — moved here from the text column (below), directly under the photo.
             int stepNumber = _totalRouteDistanceMeters > 0
                 ? Mathf.RoundToInt(_totalStepsEstimate * (float)(landmark.CumulativeDistanceMeters / _totalRouteDistanceMeters))
                 : 0;
 
-            var stepRt = UIFactory.CreateRect("Step", calloutRt);
-            stepRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 24f;
-            // "~" prefix matches ProgressScreen's own step figure — never presented as measured,
-            // since no per-step survey data exists behind this route (PLAN.md §03).
-            UIFactory.Label(stepRt, $"~Step {stepNumber:N0}", UITheme.CaptionFontSize * 0.8f,
-                FontStyles.Normal, TextAlignmentOptions.Center, UITheme.Gold);
+            var stepRt = UIFactory.CreateRect("StepPill", imageColRt);
+            stepRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
+            var stepBg = stepRt.gameObject.AddComponent<Image>();
+            stepBg.sprite = UIShapes.Pill();
+            stepBg.type = Image.Type.Sliced;
+            stepBg.color = new Color(0.96f, 0.77f, 0.29f, 0.18f); // Translucent gold fill
+
+            var stepLabel = UIFactory.Label(stepRt, $"~Step {stepNumber:N0}", UITheme.CaptionFontSize * 0.7f,
+                FontStyles.Bold, TextAlignmentOptions.Center, UITheme.Gold);
+            stepLabel.enableWordWrapping = false;
+            stepLabel.overflowMode = TextOverflowModes.Ellipsis;
+
+            // Right text column: Title, Subtitle
+            var textColRt = UIFactory.CreateRect("TextCol", calloutRt);
+            var textColLe = textColRt.gameObject.AddComponent<LayoutElement>();
+            textColLe.preferredWidth = CalloutWidth - CalloutImageSize - 32f;
+            var vlg = textColRt.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.childAlignment = TextAnchor.MiddleLeft;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.spacing = 2f;
+            var textCsf = textColRt.gameObject.AddComponent<ContentSizeFitter>();
+            textCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            bool hasSubtitle = AvatarSubtitles.TryGetValue(landmark.Name, out string subtitle);
+
+            // Title
+            // Word-wrap was on with a fixed 1-line-tall box — a long avatar name ("Sri Narasimha
+            // Avataram") wrapped to 2+ lines and spilled past its box into the subtitle/step-pill
+            // rows below, exactly the overlapping/garbled text seen on-device. Ellipsis truncation
+            // instead, matching every other fixed-height name label in this codebase (Landmarks'
+            // own list cards, Map/AR's bottom cards — see their matching comments).
+            var nameRt = UIFactory.CreateRect("Name", textColRt);
+            var nameLabel = UIFactory.Label(nameRt, landmark.Name.ToUpperInvariant(), UITheme.CaptionFontSize,
+                FontStyles.Bold, TextAlignmentOptions.MidlineLeft, UITheme.TextPrimary);
+            nameLabel.enableWordWrapping = false;
+            nameLabel.overflowMode = TextOverflowModes.Ellipsis;
+            nameRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
+
+            // Subtitle
+            if (hasSubtitle)
+            {
+                var subRt = UIFactory.CreateRect("Subtitle", textColRt);
+                var subLabel = UIFactory.Label(subRt, subtitle, UITheme.CaptionFontSize * 0.85f,
+                    FontStyles.Normal, TextAlignmentOptions.MidlineLeft, UITheme.TextSecondary);
+                subLabel.enableWordWrapping = false;
+                subLabel.overflowMode = TextOverflowModes.Ellipsis;
+                subRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+            }
 
             var calloutBtn = calloutRt.gameObject.AddComponent<Button>();
             calloutBtn.targetGraphic = bg;
@@ -359,12 +403,7 @@ namespace AlipiriAR.Map
             return (leaderRt, calloutRt);
         }
 
-        /// <summary>Crops the loaded portrait into the image slot's rounded-square via a Mask,
-        /// rather than dropping the (already square-cropped, per the processing that produced
-        /// these files) texture in as a plain Image — a Mask is what actually clips it to the
-        /// slot's rounded corners; a plain Image would show square corners poking past them.
-        /// Renders as a sibling added after the fallback icon built in BuildLeaderAndCallout, so
-        /// it draws on top and fully covers that icon once (if) this succeeds.</summary>
+        /// <summary>Crops the loaded portrait into the image slot with smooth rounded corners via Mask.</summary>
         private IEnumerator LoadPortraitInto(RectTransform imageSlotRt, string relativePath)
         {
             Texture2D tex = null;
@@ -374,7 +413,7 @@ namespace AlipiriAR.Map
             var maskRt = UIFactory.CreateRect("PhotoMask", imageSlotRt);
             UIFactory.StretchFill(maskRt);
             var maskImg = maskRt.gameObject.AddComponent<Image>();
-            maskImg.sprite = UIShapes.RoundedRect(10);
+            maskImg.sprite = UIShapes.RoundedRect(12);
             maskImg.type = Image.Type.Sliced;
             var mask = maskRt.gameObject.AddComponent<Mask>();
             mask.showMaskGraphic = false;
