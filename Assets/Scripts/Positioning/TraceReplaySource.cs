@@ -18,6 +18,15 @@ namespace AlipiriAR.Positioning
         private double _cumulativeDistance;
         private bool _running;
 
+        /// <summary>When true, Update()'s own per-frame constant-speed advance is disabled —
+        /// something external (ARNavigationScreen, measuring the AR camera's own tracked real-
+        /// world movement) drives progress instead, via AdvanceByRealDistance. Added for indoor
+        /// testing with SettingsStore.SimulateGps: the constant 1.2 m/s auto-walk let the whole
+        /// nav board/step count/turn card advance on their own while the phone sat still on a
+        /// desk (user report) — real physical movement should be what advances it, even while
+        /// testing away from the real route.</summary>
+        public bool DriveByRealMovement { get; set; }
+
         public event Action<double, double, float, double> OnPositionChanged; // lat, lon, headingDeg, cumulativeDistanceMeters
 
         public static TraceReplaySource Create(IReadOnlyList<Waypoint> waypoints)
@@ -35,9 +44,21 @@ namespace AlipiriAR.Positioning
 
         private void Update()
         {
-            if (!_running || _waypoints == null || _waypoints.Count < 2) return;
+            if (!_running || DriveByRealMovement || _waypoints == null || _waypoints.Count < 2) return;
+            Advance(SpeedMetersPerSecond * Time.deltaTime);
+        }
 
-            _cumulativeDistance += SpeedMetersPerSecond * Time.deltaTime;
+        /// <summary>Feeds real-world distance moved (AR camera translation, horizontal only) into
+        /// the simulated walk instead of the constant-speed timer — see DriveByRealMovement.</summary>
+        public void AdvanceByRealDistance(double meters)
+        {
+            if (!_running || _waypoints == null || _waypoints.Count < 2) return;
+            Advance(meters);
+        }
+
+        private void Advance(double deltaMeters)
+        {
+            _cumulativeDistance += deltaMeters;
             double total = _waypoints[^1].CumulativeDistanceMeters;
             if (_cumulativeDistance >= total)
             {

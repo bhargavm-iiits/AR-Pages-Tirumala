@@ -27,12 +27,13 @@ namespace AlipiriAR.AR
 
         /// <summary>Lays the chevron flat on the ground, pointing along the pose's forward
         /// direction — pose.rotation comes from GroundPlacementService (a surface orientation),
-        /// rotated flat into the ground plane instead of standing upright. Found on a real device:
-        /// the sprite's tip sits at local -Y (GetSprite draws the two strokes converging below
-        /// center, arms opening upward). Quaternion.Euler(90,0,0) maps local +Y (the open end) onto
-        /// pose.rotation's forward axis, which puts the actual tip facing backward — chevrons
-        /// pointed the way the walker came from instead of where the route goes next. -90 instead
-        /// of 90 maps local -Y (the tip) onto forward.
+        /// rotated flat into the ground plane instead of standing upright. The sprite's tip sits
+        /// at local -Y (GetSprite draws the two strokes converging below center, arms opening
+        /// upward). This was -90 here (mapping local -Y onto forward) on the theory that +90
+        /// pointed backward — confirmed wrong by a real-device screenshot (chevron pointing back
+        /// at the walker instead of up the path), so this is now +90. There is no way to verify
+        /// AR rotation output outside a real device session; this sign is set from that direct
+        /// visual report, not derivation — if it ever points backward again, flip it back.
         ///
         /// Eases toward the target each call rather than snapping — DynamicArrowManager.Refresh
         /// recomputes every pooled arrow's pose from a fresh ground raycast every frame, and a
@@ -43,7 +44,7 @@ namespace AlipiriAR.AR
         /// wherever the pool object happened to be left.</summary>
         public void SetPose(Pose pose)
         {
-            Quaternion targetRot = pose.rotation * Quaternion.Euler(-90f, 0f, 0f);
+            Quaternion targetRot = pose.rotation * Quaternion.Euler(90f, 0f, 0f);
 
             if (!_hasPose || UITween.ReducedMotion)
             {

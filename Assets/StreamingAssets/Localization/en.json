@@ -114,6 +114,7 @@
   "settings.auto_brightness": "Auto Brightness",
   "settings.haptic_feedback": "Haptic Feedback",
   "settings.debug_overlay": "Debug Overlay",
+  "settings.simulate_gps": "Simulate GPS (restart app after toggling)",
   "settings.offline_maps": "Offline Maps",
   "settings.offline_maps_demo": "Demo basemap · live tracking",
   "settings.offline_maps_basemap_label": "Basemap",

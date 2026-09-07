@@ -45,27 +45,43 @@ namespace AlipiriAR.UI
         private Filter _activeFilter = Filter.All;
         private LandmarkPopup _activePopup;
 
+        // Two prior fixes (ignoreLayout on the background, then moving the VerticalLayoutGroup
+        // onto a dedicated "Shell" child) were both verified present in the actual compiled,
+        // installed build via direct IL2CPP metadata inspection — and the real-device gap
+        // (Header/Search rendering ~500px down empty space) persisted regardless either time.
+        // Rather than a third theory about what's misbehaving inside VerticalLayoutGroup, this
+        // removes it from the equation entirely: Header/SearchRow/ChipsRow/ListWrap are now
+        // explicitly anchored top-to-bottom by hand (PositionFixed below), the same fixed-anchor
+        // technique every screen's floating cards already use elsewhere in this codebase — no
+        // automatic layout system left in the stack for whatever this was to hide inside.
+        private const float HeaderHeight = 96f;
+        private const float ChipsHeight = 76f;
+        private const float RowGap = UITheme.SpaceS;
+        private const float TopPad = UITheme.SpaceM;
+
         protected override void Build(RectTransform root)
         {
             UIFactory.Panel(root, UITheme.Ground);
 
-            var rootVlg = root.gameObject.AddComponent<VerticalLayoutGroup>();
-            rootVlg.childForceExpandWidth = true;
-            rootVlg.childForceExpandHeight = false;
-            rootVlg.childControlWidth = true;
-            rootVlg.childControlHeight = true;
-            rootVlg.spacing = UITheme.SpaceS;
-            rootVlg.padding = new RectOffset(0, 0, (int)UITheme.SpaceM, 0);
+            var headerRt = BuildHeader(root);
+            PositionFixed(headerRt, TopPad, HeaderHeight);
 
-            BuildHeader(root);
             BuildSearchRow(root);
+            float searchTop = TopPad + HeaderHeight + RowGap;
+            PositionFixed(_searchRow, searchTop, UITheme.MinTouchTarget);
 
+            float chipsTop = searchTop + UITheme.MinTouchTarget + RowGap;
             var chipsRowRt = UIFactory.CreateRect("ChipsRow", root);
-            chipsRowRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 76f;
+            PositionFixed(chipsRowRt, chipsTop, ChipsHeight);
             BuildFilterChips(chipsRowRt);
 
+            float listTop = chipsTop + ChipsHeight + RowGap;
             var listWrapRt = UIFactory.CreateRect("ListWrap", root);
-            listWrapRt.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
+            listWrapRt.anchorMin = Vector2.zero;
+            listWrapRt.anchorMax = Vector2.one;
+            listWrapRt.offsetMin = Vector2.zero;
+            listWrapRt.offsetMax = new Vector2(0f, -listTop);
+
             // Inter-card gap widened from SpaceM (20px) to sit closer to the mockup's rhythm
             // (Docs/UIplan.md §03 Phase 2) — cards otherwise read as touching at this list length.
             _listContent = UIFactory.VerticalScroll(listWrapRt, UITheme.SpaceM + UITheme.SpaceXS,
@@ -101,16 +117,17 @@ namespace AlipiriAR.UI
             foreach (var lm in _routeOrdered) RefreshStatusVisual(lm.Id);
             RefreshDistances();
             RefreshActiveHighlight();
+        }
 
-            Canvas.ForceUpdateCanvases();
-            Debug.Log($"[LandmarksDiag] Root.rect={Root.rect} Root.anchoredPosition={Root.anchoredPosition} Root.anchorMin={Root.anchorMin} Root.anchorMax={Root.anchorMax}");
-            for (int i = 0; i < Root.childCount; i++)
-            {
-                var child = (RectTransform)Root.GetChild(i);
-                Debug.Log($"[LandmarksDiag] child[{i}]={child.name} rect={child.rect} anchoredPos={child.anchoredPosition} sizeDelta={child.sizeDelta} anchorMin={child.anchorMin} anchorMax={child.anchorMax}");
-            }
-            var parentRt = (RectTransform)Root.parent;
-            Debug.Log($"[LandmarksDiag] Parent(ScreensContainer).rect={parentRt.rect} offsetMin={parentRt.offsetMin} offsetMax={parentRt.offsetMax}");
+        /// <summary>Anchors rt to root's top edge at a fixed pixel offset/height — see this
+        /// class's Build() comment for why this replaced VerticalLayoutGroup here.</summary>
+        private static void PositionFixed(RectTransform rt, float top, float height)
+        {
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -top);
+            rt.sizeDelta = new Vector2(0f, height);
         }
 
         private void RefreshDistances()
@@ -133,10 +150,9 @@ namespace AlipiriAR.UI
         // Header + search
         // ---------------------------------------------------------------
 
-        private void BuildHeader(Transform parent)
+        private RectTransform BuildHeader(Transform parent)
         {
             var headerRt = UIFactory.CreateRect("Header", parent);
-            headerRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 96f;
             var hlg = headerRt.gameObject.AddComponent<HorizontalLayoutGroup>();
             hlg.padding = new RectOffset((int)UITheme.SpaceM, (int)UITheme.SpaceM, 0, 0);
             hlg.spacing = UITheme.SpaceS;
@@ -160,6 +176,8 @@ namespace AlipiriAR.UI
             UIFactory.CircleShadow(searchIconRt, 72f);
             var searchIconBg = UIFactory.CircleButton(searchIconRt, 72f, FocusSearchField, new Color(1f, 1f, 1f, 0.06f));
             UIFactory.CenteredIcon(searchIconBg.transform, IconType.Search, 32f);
+
+            return headerRt;
         }
 
         /// <summary>Search bar sits permanently under the header now (user request) — no more

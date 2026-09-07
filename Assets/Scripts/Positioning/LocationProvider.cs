@@ -94,6 +94,20 @@ namespace AlipiriAR.Positioning
 
         public bool IsPlaying => _useTrace ? _trace.IsPlaying : _gpsRoutine != null;
 
+        /// <summary>Trace-replay only — see TraceReplaySource.DriveByRealMovement. No-op on the
+        /// real-GPS path, which is already driven by actual device movement.</summary>
+        public bool DriveByRealMovement
+        {
+            get => _useTrace && _trace.DriveByRealMovement;
+            set { if (_useTrace) _trace.DriveByRealMovement = value; }
+        }
+
+        /// <summary>Trace-replay only — see TraceReplaySource.AdvanceByRealDistance.</summary>
+        public void AdvanceByRealDistance(double meters)
+        {
+            if (_useTrace) _trace.AdvanceByRealDistance(meters);
+        }
+
         private void SetStatus(LocationSourceStatus status)
         {
             if (_status == status) return;

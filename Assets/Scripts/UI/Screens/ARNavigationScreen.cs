@@ -87,6 +87,7 @@ namespace AlipiriAR.UI
         private float _lowGpsSuppressUntil = -1f;
         private float _pointerDownTime = -1f;
         private float _lastHeadingDeg;
+        private Vector3? _lastArCameraPos;
         private bool _isActive;
         private const float LongPressSeconds = 0.5f;
 
@@ -165,6 +166,24 @@ namespace AlipiriAR.UI
             if (_bootstrapper == null || _bootstrapper.State != ArAvailabilityState.Ready) return;
             if (_session.State != NavigationState.Active) return;
 
+            // SettingsStore.SimulateGps + DriveByRealMovement (set in OnArStateChanged's Ready
+            // case): the simulated walk's own constant-speed timer is disabled, so the nav
+            // board/step count/turn card only advance when the phone (via ARCore's own tracked
+            // camera pose) actually physically moves — real indoor testing without a fake
+            // auto-walk running while the phone sits still (user report).
+            if (_session.Location.DriveByRealMovement)
+            {
+                Vector3 camPos = _bootstrapper.ArCamera.transform.position;
+                if (_lastArCameraPos.HasValue)
+                {
+                    Vector3 delta = camPos - _lastArCameraPos.Value;
+                    delta.y = 0f; // horizontal distance only — matches GeoAnchorFrame's own convention
+                    float moved = delta.magnitude;
+                    if (moved > 0.001f) _session.Location.AdvanceByRealDistance(moved);
+                }
+                _lastArCameraPos = camPos;
+            }
+
             _arrows?.Refresh(_session.Progress.CumulativeDistanceMeters, _bootstrapper.ArCamera.transform.forward);
             UpdateLongPress();
         }
@@ -227,6 +246,12 @@ namespace AlipiriAR.UI
                     // falls straight through to the existing GPS path when it declines.
                     _geospatial = new GeospatialSession();
                     _arrows = new DynamicArrowManager(_db.Route.Waypoints, _placement, _localization, _bootstrapper.Origin.transform);
+
+                    if (SettingsStore.Resolve().SimulateGps)
+                    {
+                        _session.Location.DriveByRealMovement = true;
+                        _lastArCameraPos = null; // reset so the first frame doesn't feed a huge jump
+                    }
 
                     if (ServiceLocator.TryGet<Diagnostics.DebugOverlay>(out var readyOverlay))
                         readyOverlay.AttachAr(_bootstrapper, _localization, _placement, _geospatial);
