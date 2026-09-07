@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using AlipiriAR.Audio;
 using AlipiriAR.Data;
 using AlipiriAR.Localization;
+using AlipiriAR.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -83,6 +85,14 @@ namespace AlipiriAR.UI
             bg.color = Color.Lerp(LandmarkVisuals.TintFor(landmark.Type), UITheme.Ground, 0.4f);
 
             UIFactory.CenteredIcon(heroRt, LandmarkVisuals.IconFor(landmark.Type), 200f, new Color(1f, 1f, 1f, 0.85f));
+
+            // One of the six Dashavatara landmarks (PoiMarkerLayer's map callout shows the same
+            // portrait) — load the real image over the generic per-type icon above rather than
+            // showing every landmark with the same handful of category glyphs. Added as a later
+            // sibling so it draws on top once (if) it loads; a missing/corrupt file just leaves
+            // the icon in place, same "never fatal" rule as PoiMarkerLayer's own loader.
+            if (AvatarPortraits.TryGet(landmark.Name, out string portraitPath))
+                StartCoroutine(LoadPortraitInto(heroRt, portraitPath));
 
             var closeBtn = UIFactory.CircleButton(heroRt, 72f, Close, new Color(0f, 0f, 0f, 0.45f));
             var closeRt = (RectTransform)closeBtn.transform;
@@ -186,6 +196,29 @@ namespace AlipiriAR.UI
         {
             _listenIcon.sprite = IconGraphic.Get(_listening ? IconType.SpeakerMuted : IconType.Speaker);
             _listenLabel.text = Loc.T(_listening ? "common.stop" : "common.listen");
+        }
+
+        /// <summary>Mirrors PoiMarkerLayer's own LoadPortraitInto — same loader, same "never
+        /// fatal" contract. Inserted at sibling index 1 (after the generic icon at 0, before the
+        /// close button) rather than appended, since StartCoroutine's async continuation runs
+        /// after Build() has already added the close button as heroRt's second child — appending
+        /// would draw the photo on top of, and so hide, the close button.</summary>
+        private IEnumerator LoadPortraitInto(RectTransform heroRt, string relativePath)
+        {
+            Texture2D tex = null;
+            yield return StreamingAssetsLoader.LoadTexture(relativePath, t => tex = t);
+            if (tex == null || heroRt == null) yield break;
+
+            var photoRt = UIFactory.CreateRect("Photo", heroRt);
+            UIFactory.StretchFill(photoRt);
+            photoRt.SetSiblingIndex(1);
+            var photoImg = photoRt.gameObject.AddComponent<Image>();
+            photoImg.sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            photoImg.raycastTarget = false;
+            // Stretched to fill the hero banner edge-to-edge (not preserveAspect) — a rectangular
+            // photo, not a letterboxed one, per the redesign reference.
+            photoImg.type = Image.Type.Simple;
+            photoImg.preserveAspect = false;
         }
 
         private bool HandleBack()

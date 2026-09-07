@@ -64,7 +64,7 @@
              "optional" matches this app's actual design: full AR when available, offline map
              fallback when not, never AR-required at install/listing time. -->
     <meta-data android:name="com.google.ar.core" android:value="optional" />
-      <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">
+    <provider android:name="androidx.core.content.FileProvider" android:authorities="com.alipiriar.navigation.fileprovider" android:exported="false" android:grantUriPermissions="true">
       <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
     </provider>
     <activity android:name="com.unity3d.player.UnityPlayerGameActivity" android:theme="@style/BaseUnityGameActivityTheme" android:exported="true" android:launchMode="singleTask" android:screenOrientation="portrait" android:hardwareAccelerated="false" android:resizeableActivity="true" android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density">

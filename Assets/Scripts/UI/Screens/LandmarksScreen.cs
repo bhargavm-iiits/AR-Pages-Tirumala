@@ -34,13 +34,14 @@ namespace AlipiriAR.UI
         private readonly Dictionary<int, GameObject> _cardObjects = new();
         private readonly Dictionary<int, (GameObject filled, GameObject ring)> _statusVisuals = new();
         private readonly Dictionary<int, TMP_Text> _distanceLabels = new();
+        private readonly Dictionary<int, GameObject> _activeBorders = new();
+        private readonly Dictionary<int, TMP_Text> _aheadLabels = new();
         private readonly List<(Filter filter, Image bg, TMP_Text label, LayoutElement le)> _chips = new();
 
         private RectTransform _listContent;
         private RectTransform _emptyRt;
         private RectTransform _searchRow;
         private TMP_InputField _searchField;
-        private bool _searchVisible;
         private Filter _activeFilter = Filter.All;
         private LandmarkPopup _activePopup;
 
@@ -84,6 +85,7 @@ namespace AlipiriAR.UI
                 BuildCard(_listContent, _routeOrdered[i], i + 1);
 
             ApplyFilter();
+            RefreshActiveHighlight();
             Loc.OnLocaleChanged += OnLocaleChanged;
             SettingsStore.Resolve().OnUnitsChanged += RefreshDistances;
         }
@@ -98,6 +100,7 @@ namespace AlipiriAR.UI
         {
             foreach (var lm in _routeOrdered) RefreshStatusVisual(lm.Id);
             RefreshDistances();
+            RefreshActiveHighlight();
 
             Canvas.ForceUpdateCanvases();
             Debug.Log($"[LandmarksDiag] Root.rect={Root.rect} Root.anchoredPosition={Root.anchoredPosition} Root.anchorMin={Root.anchorMin} Root.anchorMax={Root.anchorMax}");
@@ -152,13 +155,15 @@ namespace AlipiriAR.UI
             var titleLabel = UIFactory.Label(titleRt, string.Empty, UITheme.TitleFontSize, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
             LocalizedLabel.Bind(titleLabel, "landmarks.title");
 
-            var searchBtnRt = UIFactory.CreateRect("SearchBtn", headerRt);
-            searchBtnRt.gameObject.AddComponent<LayoutElement>().preferredWidth = 72f;
-            UIFactory.CircleShadow(searchBtnRt, 72f);
-            var searchBtn = UIFactory.CircleButton(searchBtnRt, 72f, ToggleSearch, new Color(1f, 1f, 1f, 0.06f));
-            UIFactory.CenteredIcon(searchBtn.transform, IconType.Search, 32f);
+            var searchIconRt = UIFactory.CreateRect("SearchIcon", headerRt);
+            searchIconRt.gameObject.AddComponent<LayoutElement>().preferredWidth = 72f;
+            UIFactory.CircleShadow(searchIconRt, 72f);
+            var searchIconBg = UIFactory.CircleButton(searchIconRt, 72f, FocusSearchField, new Color(1f, 1f, 1f, 0.06f));
+            UIFactory.CenteredIcon(searchIconBg.transform, IconType.Search, 32f);
         }
 
+        /// <summary>Search bar sits permanently under the header now (user request) — no more
+        /// toggle button hiding it; the header's search icon just focuses the always-visible field.</summary>
         private void BuildSearchRow(Transform parent)
         {
             _searchRow = UIFactory.CreateRect("SearchRow", parent);
@@ -172,17 +177,12 @@ namespace AlipiriAR.UI
 
             _searchField = UIFactory.InputField(paddedRt, Loc.T("landmarks.search_placeholder"));
             _searchField.onValueChanged.AddListener(_ => ApplyFilter());
-            _searchRow.gameObject.SetActive(false);
         }
 
-        private void ToggleSearch()
+        private void FocusSearchField()
         {
-            _searchVisible = !_searchVisible;
-            _searchRow.gameObject.SetActive(_searchVisible);
-            if (!_searchVisible)
-            {
-                _searchField.text = string.Empty;
-            }
+            _searchField.Select();
+            _searchField.ActivateInputField();
         }
 
         // ---------------------------------------------------------------
@@ -319,6 +319,14 @@ namespace AlipiriAR.UI
             var card = UIFactory.Card(wrapper, UITheme.Surface);
             card.gameObject.name = $"Card_{landmark.Id}";
 
+            // Redesign's "active/next waypoint" treatment (Docs/Images/New UI #3) — a glowing gold
+            // border shown on exactly one card at a time (the first not-yet-visited landmark),
+            // toggled by RefreshActiveHighlight rather than baked in here since visiting/unvisiting
+            // any landmark can shift which one that is.
+            var border = UIFactory.GlowBorder(card.transform, UITheme.RadiusCard);
+            border.gameObject.SetActive(false);
+            _activeBorders[landmark.Id] = border.gameObject;
+
             var btn = card.gameObject.AddComponent<Button>();
             btn.targetGraphic = card;
             btn.transition = Selectable.Transition.None;
@@ -400,6 +408,7 @@ namespace AlipiriAR.UI
             var descLabel = UIFactory.Label(descRt, landmark.Description, UITheme.CaptionFontSize, FontStyles.Normal, TextAlignmentOptions.MidlineLeft, UITheme.TextSecondary);
             descLabel.enableWordWrapping = false;
             descLabel.overflowMode = TextOverflowModes.Ellipsis;
+            _aheadLabels[landmark.Id] = descLabel;
 
             _cardObjects[landmark.Id] = wrapper.gameObject;
         }
@@ -436,6 +445,41 @@ namespace AlipiriAR.UI
             bool newState = !_visitedStore.IsVisited(landmarkId);
             _visitedStore.SetVisited(landmarkId, newState);
             RefreshStatusVisual(landmarkId);
+            RefreshActiveHighlight();
+        }
+
+        /// <summary>Redesign's single glowing-gold "next waypoint" card (Docs/Images/New UI #3) —
+        /// the first landmark in route order that isn't yet visited. Recomputed on every visited-
+        /// state change since toggling any landmark can shift which one that is.</summary>
+        private void RefreshActiveHighlight()
+        {
+            int activeId = -1;
+            foreach (var lm in _routeOrdered)
+            {
+                if (!_visitedStore.IsVisited(lm.Id)) { activeId = lm.Id; break; }
+            }
+
+            foreach (var lm in _routeOrdered)
+            {
+                bool isActive = lm.Id == activeId;
+                if (_activeBorders.TryGetValue(lm.Id, out var border)) border.SetActive(isActive);
+                if (_aheadLabels.TryGetValue(lm.Id, out var label))
+                {
+                    label.color = isActive ? UITheme.Accent : UITheme.TextSecondary;
+                    label.text = isActive
+                        ? Loc.T("nav.ahead_format", DistanceFormatter.FormatMeters(lm.CumulativeDistanceMeters - CompletedMeters()))
+                        : lm.Description;
+                }
+            }
+        }
+
+        private double CompletedMeters()
+        {
+            double completed = 0.0;
+            foreach (var lm in _routeOrdered)
+                if (_visitedStore.IsVisited(lm.Id) && lm.CumulativeDistanceMeters > completed)
+                    completed = lm.CumulativeDistanceMeters;
+            return completed;
         }
 
         private void RefreshStatusVisual(int landmarkId)

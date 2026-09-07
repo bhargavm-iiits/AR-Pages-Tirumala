@@ -7,22 +7,28 @@ using UnityEngine.UI;
 
 namespace AlipiriAR.Map
 {
-    /// <summary>Blue route polyline with vertex dots, amber-tinted where RouteBuilder had to
+    /// <summary>Gold route polyline with vertex dots, amber-tinted where RouteBuilder had to
     /// bridge a survey gap in a straight line (PLAN.md §01/§08's "route approximate" notice).
     /// Route.Waypoints is the raw ~157-vertex chain (not Densify()'d — that's the AR trail's
     /// job in Scene 6), cheap enough to render every segment directly.
     ///
-    /// Drawn as two passes — a wide, translucent white casing underneath, then the narrower
-    /// colored core on top — the way every real map app renders a route. A single flat-color
-    /// line with a same-width dot stamped at every one of ~165 source vertices (the previous
-    /// version) reads as a dotted "connect the dots" trace rather than a road; the casing gives
-    /// the core a soft light halo against the terrain, and drawing dots at both widths keeps
-    /// the joints between segments smooth instead of visibly mitred.</summary>
+    /// Drawn as two passes — a wide, translucent gold-tinted casing underneath, then the
+    /// narrower solid gold core on top — approximating the redesign's glowing-path look
+    /// (Docs/Images/New UI) without a real bloom shader. Was an opaque-ish WHITE casing (a
+    /// flat-color map-app convention) until a user report: with no blur available (UIShapes'
+    /// own documented limitation), a hard-edged white band next to a gold core reads as two
+    /// separate parallel lines — "the route looks doubled" — rather than a soft halo, and made
+    /// the (correctly path-snapped) avatar markers look like they float beside the path instead
+    /// of on it. Tinting the casing gold instead keeps the width/glow effect while reading as
+    /// one cohesive line. A single flat-color line with a same-width dot stamped at every one of
+    /// ~165 source vertices (the original version, before casing existed at all) reads as a
+    /// dotted "connect the dots" trace rather than a road — dots at both widths keep the joints
+    /// between segments smooth instead of visibly mitred.</summary>
     public class RouteOverlay : MonoBehaviour
     {
-        private const float CasingWidth = 16f;
+        private const float CasingWidth = 14f;
         private const float CoreWidth = 8f;
-        private static readonly Color CasingColor = new(1f, 1f, 1f, 0.55f);
+        private static readonly Color CasingColor = new(UITheme.Accent.r, UITheme.Accent.g, UITheme.Accent.b, 0.35f);
 
         public static RouteOverlay Create(MapView map, IReadOnlyList<Waypoint> waypoints)
         {

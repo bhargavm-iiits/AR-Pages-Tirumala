@@ -31,6 +31,11 @@ namespace AlipiriAR.Core
 
         private static IEnumerator InitializeRoutine()
         {
+            // Started here, not awaited until the end — plays concurrently with the loading
+            // below so the splash covers real load time instead of adding its own on top.
+            bool splashDone = false;
+            SplashVideoScreen.Play(() => splashDone = true);
+
             // Registered first and cheaply (no network wait here — the probe loop runs in the
             // background) so it's available to GoogleTileSession/TileBasemap the moment the Map
             // tab can possibly open (Docs/update1.md §02 Phase 2 items 4-5).
@@ -50,6 +55,8 @@ namespace AlipiriAR.Core
             // finish its own async init — otherwise the very first Speak() call could fall
             // through to caption-only while the engine is still starting up.
             VoiceNavigationManager.Resolve();
+
+            while (!splashDone) yield return null;
 
             UIRoot.Bootstrap();
         }

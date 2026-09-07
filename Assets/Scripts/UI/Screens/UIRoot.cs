@@ -20,13 +20,17 @@ namespace AlipiriAR.UI
     /// </summary>
     public class UIRoot : MonoBehaviour
     {
+        // Icons per Docs/Icons/*.svg (user-supplied references): navigation dart, map pin, temple
+        // gopuram, task-complete checklist badge, and the gear already used for Settings elsewhere
+        // (Map screen's own settings shortcut) — Settings was wired to IconType.Plus before this,
+        // an obvious placeholder mismatch fixed alongside the rest of this pass.
         private static readonly (string labelKey, IconType icon) [] Tabs =
         {
-            ("tabs.navigate", IconType.Compass),
-            ("tabs.map", IconType.North),
+            ("tabs.navigate", IconType.NavigationArrow),
+            ("tabs.map", IconType.MapPin),
             ("tabs.landmarks", IconType.Gopuram),
-            ("tabs.progress", IconType.Check),
-            ("tabs.settings", IconType.Plus),
+            ("tabs.progress", IconType.TaskComplete),
+            ("tabs.settings", IconType.Gear),
         };
 
         private const int DefaultTabIndex = 0;

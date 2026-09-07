@@ -21,7 +21,14 @@ namespace AlipiriAR.Map
     {
         public const int ReferenceZoom = 18;
         public const float MinZoom = 14f;
-        public const float MaxZoom = 18f;
+        // Was 18f (== ReferenceZoom, so the demo basemap's baked hatch texture was never
+        // upscaled past its native resolution) — raised so the Map tab can actually open at a
+        // "zoomed in" default (user report: 18f was already this class's old ceiling, so the
+        // callout-card default zoom fix couldn't go any further without raising it here too).
+        // DemoBasemap is a fallback layer under TileBasemap's real OSM tiles (MapScreen.Build
+        // creates both), so the one texture this affects is normally covered anyway once tiles
+        // load; TileBasemap's real tiles support this zoom range natively.
+        public const float MaxZoom = 20f;
 
         private RectTransform _viewport;
         private RectTransform _world;
