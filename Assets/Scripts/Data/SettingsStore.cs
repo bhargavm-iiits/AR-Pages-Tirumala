@@ -12,6 +12,7 @@ namespace AlipiriAR.Data
         private const string UnitsMetricKey = "settings.units_metric";
         private const string AutoBrightnessKey = "settings.auto_brightness";
         private const string HapticFeedbackKey = "settings.haptic_feedback";
+        private const string SimulateGpsKey = "settings.simulate_gps";
 
         public event Action OnUnitsChanged;
 
@@ -43,6 +44,17 @@ namespace AlipiriAR.Data
         {
             get => PlayerPrefs.GetInt(HapticFeedbackKey, 1) == 1;
             set { PlayerPrefs.SetInt(HapticFeedbackKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        /// <summary>Developer toggle — forces the Editor's simulated trace-replay walk on a real
+        /// device build instead of real GPS hardware (NavigationSession.Resolve()'s only read of
+        /// this). Off by default: a real pilgrim on the real hill should always get real GPS.
+        /// Persisted (not just in-memory) since NavigationSession.Resolve() reads it once, early
+        /// at next launch — flip it, then relaunch the app, then start navigation.</summary>
+        public bool SimulateGps
+        {
+            get => PlayerPrefs.GetInt(SimulateGpsKey, 0) == 1;
+            set { PlayerPrefs.SetInt(SimulateGpsKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
         public static SettingsStore Resolve()

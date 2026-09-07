@@ -137,7 +137,16 @@ namespace AlipiriAR.Positioning
             // real Input.location/Input.compass path below (device-only) never ran. The Editor
             // has no GPS hardware, so it keeps the trace harness as PLAN.md's desk-testable
             // default; a device build now drives the app from real GPS. See Docs/Draft1.md D11.
-            var location = Application.isEditor
+            //
+            // The device-GPS branch is geographically real: Route.Waypoints are actual lat/lon
+            // for the Alipiri-Tirumala hillside, so on a phone tested anywhere else, real GPS
+            // never lands near the route and HybridLocalizationEngine.Frame never establishes —
+            // the AR chevron trail then has nothing valid to anchor to and stays empty (user
+            // report: "no arrows appear" while testing off-site). SettingsStore.SimulateGps is
+            // the escape hatch — a persisted developer toggle (Settings screen) that forces the
+            // same trace-replay walk the Editor already uses, so the AR trail is testable on a
+            // real device without being physically on the hill.
+            var location = Application.isEditor || SettingsStore.Resolve().SimulateGps
                 ? LocationProvider.CreateTraceReplay(db.Route.Waypoints)
                 : LocationProvider.CreateDeviceGps();
             var progress = new RouteProgressTracker(db.Route);

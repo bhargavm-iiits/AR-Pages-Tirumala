@@ -94,6 +94,11 @@ namespace AlipiriAR.UI
             hlg.childAlignment = TextAnchor.MiddleLeft;
             hlg.childControlWidth = true;
             hlg.childControlHeight = true;
+            // Both default true on a fresh HorizontalLayoutGroup — left unset, the avatar's fixed
+            // 108x108 LayoutElement gets force-stretched to the card's full height (and extra
+            // width), rendering the circular ring as a wide oval. Confirmed on a real device.
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
 
             var avatarRt = UIFactory.CreateRect("Avatar", card.transform);
             var avatarLe = avatarRt.gameObject.AddComponent<LayoutElement>();
@@ -181,6 +186,13 @@ namespace AlipiriAR.UI
                 AddDivider(experience);
                 AddSwitchRow(experience, IconType.Gear, "settings.debug_overlay",
                     debugOverlay.IsVisible, v => debugOverlay.SetVisible(v));
+
+                // NavigationSession.Resolve() reads SimulateGps once, early at next launch — this
+                // toggle alone doesn't restart navigation, so its label says so rather than
+                // implying an immediate effect.
+                AddDivider(experience);
+                AddSwitchRow(experience, IconType.Compass, "settings.simulate_gps",
+                    settings.SimulateGps, v => settings.SimulateGps = v);
             }
 
             var navigation = BuildGroup(parent, "settings.section_navigation");
