@@ -296,4 +296,97 @@ $$\Delta Z = R \cdot (\phi - \phi_0)$$
 $$\Delta Y = h - h_0$$
 Where $R \approx 6,371,000\text{ m}$ is the mean Earth radius. This allows GPS waypoints up to 500 meters ahead to be placed into the AR camera frustum with high geometric fidelity.
 
+## 🛠️ Technology Stack & Dependencies
+
+The project is built on modern high-performance game engine architecture with strict offline operational guarantees:
+
+| Subsystem | Technology | Version | Purpose |
+|---|---|---|---|
+| **Game Engine** | Unity Engine | `6000.5.5f1 LTS` | Core 64-bit real-time graphics and execution environment |
+| **Render Pipeline** | Universal Render Pipeline (URP) | `17.5.0` | Mobile-optimized unlit & lit forward rendering shaders |
+| **AR Framework** | Unity AR Foundation | `6.5.0` | Multi-platform abstraction for camera tracking and plane detection |
+| **XR Engine** | Google ARCore XR Plugin | `6.5.0` | Android hardware AR runtime & camera motion tracking |
+| **AR Extensions** | ARCore Extensions | `1.54.0-arf6` | Google Geospatial VPS integration at terminals (`LocalPackages`) |
+| **Input System** | Unity New Input System | `1.19.0` | Multi-touch map panning, pinch-zoom, and 3D object rotation |
+| **UI Framework** | Unity UGUI + TextMesh Pro | `2.5.0` | High-DPI resolution-independent text and UI layout system |
+| **Serialization** | Newtonsoft Json.NET | `3.2.1` | Offline deserialization of GeoJSON routes and landmark catalogs |
+| **Text-to-Speech** | Android Native TTS Bridge | Custom | Dependency-free Java/Kotlin native TTS invocation via JNI |
+| **Excel Exporter** | Custom OpenXML Writer | Custom | In-memory ZIP package creation for `.xlsx` without third-party DLLs |
+
+---
+
+## 🔒 Android Platform Configuration & Security
+
+The production `AndroidManifest.xml` (`Assets/Plugins/Android/AndroidManifest.xml`) is hand-crafted to enforce precise hardware privileges:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <!-- AR Tracking & Camera Feed -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  
+  <!-- GPS Along-Track Navigation -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  
+  <!-- Pedestrian Dead Reckoning (Android 10+ API 29) -->
+  <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+  
+  <!-- Optional: Gated VPS Heritage (Terminal points only) -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  
+  <!-- Secure File Sharing for Pilgrimage Excel Export -->
+  <application>
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.fileprovider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+    </provider>
+  </application>
+</manifest>
+```
+
+> [!IMPORTANT]
+> **Internet Permission Rationale:** The core wayfinding engine never opens network sockets. The `INTERNET` permission is conditionally retained solely to permit Google ARCore VPS (Visual Positioning System) lookups at the Alipiri base entrance and Tirumala terminal. All mountain stairway wayfinding remains 100% offline.
+
+---
+
+## 🚀 Getting Started & Build Guide
+
+### Prerequisites
+1. **Unity Hub** with **Unity 6000.5.5f1 LTS** installed.
+2. **Android Build Support** module installed with:
+   - Android SDK & NDK Tools (API Level 26 through 34)
+   - OpenJDK
+3. **ARCore Supported Android Device** running Android 8.0 (Oreo, API 26) or higher.
+
+### Step-by-Step Build Instructions
+
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/bhargavm-iiits/AR-Pages-Tirumala.git
+   cd AR-Pages-Tirumala
+   ```
+
+2. **Open the Project in Unity:**
+   - Launch Unity Hub.
+   - Click **Add Project from disk** and select the `AR-Pages-Tirumala` directory.
+   - Allow Unity to import packages and compile shaders into the Library cache.
+
+3. **Desktop Simulator / Desk Testing (No GPS Required):**
+   - In Project View, open `Assets/Scenes/Pages.unity`.
+   - Press **Play ▶️** in the Unity Editor.
+   - `TraceReplaySource.cs` automatically detects `Application.isEditor` and plays back recorded GPS waypoints along the Alipiri stairway at walking speed, allowing full verification of UI screens, turns, and overlays without stepping outdoors.
+
+4. **Build Android APK:**
+   - Go to **File → Build Settings...**
+   - Switch platform to **Android**.
+   - Verify settings:
+     - **Texture Compression:** ETC2 / ASTC
+     - **Scripting Backend:** IL2CPP
+     - **Target Architectures:** ARM64 enabled (ARMv7 disabled)
+     - **Minimum API Level:** Android 8.0 'Oreo' (API Level 26)
+   - Click **Build and Run** with your Android device connected via USB with USB Debugging enabled.
+
 ---
