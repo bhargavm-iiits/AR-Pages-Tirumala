@@ -202,4 +202,57 @@ The route is derived from OpenStreetMap data (`alipiri_mettu.geojson`) parsed by
 > [!NOTE]
 > **The 1,171.7 m Mountain Gap:** OpenStreetMap has never digitized the switchback steps between coordinates `(13.664720, 79.365567)` and `(13.666465, 79.354873)`. Rather than fabricating a fictitious path, `RouteBuilder.cs` bridges this gap with an amber straight line, and the UI transparently informs the devotee that the path is approximate in this section.
 
+### 4. Sacred Places Directory & Pilgrim Journey Tracker
+The spiritual dimension of the pilgrimage is brought alive with rich contextual information and progress tracking.
+
+| Sacred Places & Statues Directory | Pilgrim Journey & Progress Tracker |
+|:---:|:---:|
+| <img src="Docs/Images/AppScreens/07_sacred_places_directory.jpeg" width="360" alt="Sacred Places Directory" /> | <img src="Docs/Images/AppScreens/08_pilgrim_journey_tracker.jpeg" width="360" alt="Pilgrim Journey Tracker" /> |
+| **Heritage Landmark Directory**<br/>• Instant search across 40 sanctified shrines<br/>• Category filters (`All`, `Temples`, `Statues`)<br/>• Visiting status tracking (`Visited`, `Ahead`)<br/>• Quick portal into the 3D Dashavatara gallery | **Pilgrimage Milestone Progress**<br/>• Vertical milestone timeline (Alipiri $\to$ TTD Jala Prasadam $\to$ Tirumala)<br/>• Accurate progress metrics (`0.00 km of 7.29 km`, `0%`)<br/>• Estimated remaining walk time (`2 h 54 m`)<br/>• Personal reflection journal (*"Moments to remember"*) |
+
+---
+
+## 🏛️ Sacred Heritage & Landmark Architecture
+
+The stairway is accompanied by an offline database (`Assets/StreamingAssets/Database/landmarks.json`) containing **40 verified historical and spiritual landmarks** categorized by architectural and functional purpose.
+
+### 1. Landmark Taxonomy & Schema
+Each landmark is represented by `LandmarkData.cs` and loaded into memory on startup:
+
+```json
+{
+  "id": "landmark_01",
+  "name": "Alipiri Padala Mandapam",
+  "teluguName": "అలిపిరి పాదాల మండపం",
+  "type": "Mandapam",
+  "latitude": 13.646761,
+  "longitude": 79.405174,
+  "routeDistanceMeters": 0.0,
+  "estimatedStepIndex": 0,
+  "description": "The sacred threshold of the Tirumala hills where Sri Venkateswara Swamy left His holy divine footprints.",
+  "voiceText": "Approaching Alipiri Padala Mandapam. Offer your prayers at the divine footprints before beginning the ascent."
+}
+```
+
+| Type Category | Count | Key Landmarks | In-App Visual Representation |
+|---|---:|---|---|
+| `Gopuram` | 4 | Alipiri Arch, Gali Gopuram, Mokalla Gopuram, Tirumala Mada Veedhi | Golden temple tower badge with procedural facade |
+| `Statue` | 14 | Mathsyavataram, Kurmavataram, Baktha Anjaneya, Garuda Statue, etc. | Sculpted sandstone glyph & direct link to 3D model |
+| `Mandapam` | 11 | Padala Mandapam, Ganta Mandapam, Dorasani Mandapam | Ancient pillared pavilion icon |
+| `JalaPrasadam` | 6 | TTD Free Purified Mineral Water stations (every ~1.2 km) | Cyan water droplet with instant proximity alert |
+| `Medical & Aid` | 3 | TTD First Aid dispensaries & emergency oxygen booths | Emergency cross with direct distance meter |
+| `Temple` | 2 | Sri Lakshmi Narasimha Swamy Temple, Bhashyakarla Sannidhi | Sanctum sanctorum icon with audio stotram cue |
+
+### 2. Spatial Geofencing (`LandmarkTriggerService.cs`)
+As the pilgrim ascends, `LandmarkTriggerService` checks the projected along-track distance against the milestone array:
+- **Proximity Alert ($\le 50\text{ m}$):** Shows the `TurnInstructionCard` overlay and prepares audio narration.
+- **Arrival Trigger ($\le 15\text{ m}$):** Triggers `ArrivalCard` and registers the landmark into `VisitedStore.cs`.
+- **Text-To-Speech Synthesis:** Native `AndroidTextToSpeech.cs` reads the sacred lore in the background without needing internet connectivity.
+
+### 3. Local Pilgrimage Journal & Dependency-Free Excel Writer
+To preserve memories and record devotion stats, `ProfileService.cs` logs pilgrimage sessions into a local Open Office XML spreadsheet (`Assets/login.xlsx`):
+- Uses `XlsxWriter.cs` — a 100% dependency-free, zero-DLL custom OOXML ZIP generator.
+- Stores devotee Name, Age, Chosen Language, Date, Start Time, Completion Time, Estimated Steps climbed, and Calories burned.
+- Pilgrim can export this file using the Android Native Share Sheet via `FileProvider`.
+
 ---
