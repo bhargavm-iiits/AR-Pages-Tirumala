@@ -114,3 +114,25 @@ graph TD
 ```
 
 ---
+
+## 📱 Visual App Showcase
+
+The visual interface is designed with a **Sacred Minimalist** philosophy: deep temple onyx backgrounds (`#121212`), sacred gold accents (`#D4AF37`), warm sandstone highlights (`#E6CA65`), and crystal-clear high-contrast typography compliant with harsh midday Indian sunlight.
+
+### 1. Divine Welcome & Sacred Onboarding
+Devotees are greeted with a divine darshan of Lord Venkateswara Swamy in Suvarna Alankaram before entering the navigation experience.
+
+| Divine Welcome Gateway | Sacred Path Landing |
+|:---:|:---:|
+| <img src="Docs/Images/AppScreens/02_welcome_tirumala.jpeg" width="360" alt="Welcome to Tirumala" /> | <img src="Docs/Images/AppScreens/03_onboarding_landing.jpeg" width="360" alt="Alipiri AR Sacred Path" /> |
+| **Lord Sri Venkateswara Swamy**<br/>Suvarna Alankaram Darshan welcoming devotees to Tirumala | **Alipiri to Tirumala Gateway**<br/>*"A sacred path. A journey within. Walk with devotion."* |
+
+### 2. Navigation Dashboard & Live AR Wayfinding
+The core navigation experience transitions seamlessly between high-level pilgrimage metrics and immersive outdoor AR step tracking.
+
+| Navigation Dashboard | Live AR Camera Wayfinding |
+|:---:|:---:|
+| <img src="Docs/Images/AppScreens/04_navigation_dashboard.jpeg" width="360" alt="Navigation Dashboard" /> | <img src="Docs/Images/AppScreens/05_live_ar_camera_view.jpeg" width="360" alt="Live AR Wayfinding" /> |
+| **Real-time Pilgrim Dashboard**<br/>• Live progress (`0.00 of 7.29 km`)<br/>• Next landmark card (`TTD Jala Prasadam · 40m`)<br/>• Quick amenities filters (Water, Rest, Medical Help)<br/>• Bottom navigation tabs (Navigate, Map, Places, Journey, Guide) | **Outdoor Augmented Reality View**<br/>• Real-time camera feed with golden 3D chevrons<br/>• 3D spatial billboard pin (`TTD Jala Prasadam · 39 m`)<br/>• Turn banner (`72 m · Path bends right`)<br/>• Estimated remaining duration (`2 h 54 m`) |
+
+---
