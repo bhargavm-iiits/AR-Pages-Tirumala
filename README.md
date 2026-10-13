@@ -255,4 +255,45 @@ To preserve memories and record devotion stats, `ProfileService.cs` logs pilgrim
 - Stores devotee Name, Age, Chosen Language, Date, Start Time, Completion Time, Estimated Steps climbed, and Calories burned.
 - Pilgrim can export this file using the Android Native Share Sheet via `FileProvider`.
 
+### 5. Sacred Figures 3D Gallery & Interactive AR Viewer
+A standout cultural feature of Alipiri AR Navigation is the preservation and exploration of the sacred **Dashavatara** (Ten Incarnations of Lord Vishnu) sculptures located along the stairway.
+
+| Dashavatara 3D Sacred Gallery | Interactive 3D Model & AR Placement |
+|:---:|:---:|
+| <img src="Docs/Images/AppScreens/09_dashavatara_3d_gallery.jpeg" width="360" alt="Dashavatara 3D Gallery" /> | <img src="Docs/Images/AppScreens/10_ar_3d_figure_viewer.jpeg" width="360" alt="Lord Krishna 3D AR Viewer" /> |
+| **Sacred Figures Gallery**<br/>• Full interactive 3D catalogue<br/>• Varaha, Narasimha, Vamana, Parashurama<br/>• Direct "View in 3D" model loader<br/>• Scriptural history & avatar descriptions | **360° Interactive 3D AR Viewer**<br/>• Lord Sri Krishna with Sudarshana Chakra & Gada<br/>• Full touch gestures (Drag to rotate, pinch to zoom)<br/>• *"Place in AR"* button for ground plane projection<br/>• Reset view and devotional iconography |
+
+---
+
+## 👁️ Outdoor Augmented Reality Engine
+
+The outdoor Augmented Reality wayfinding pipeline (`Assets/Scripts/AR/`) overcomes the extreme visual challenges of outdoor stone staircases, severe solar glare, and moving crowds.
+
+### 1. 3-Tier Ground Placement System (`GroundPlacementService.cs`)
+Standard AR tracking assumes flat indoor floors. Outdoor stone steps present disjointed, jagged elevation planes with fluctuating shadows. The placement service implements a robust 3-tier cascade:
+
+```
+[Tier 1: AR Plane Raycasting] ─── Hits detected ARCore Horizontal Plane
+           │ (Fails on untextured stairs)
+           ▼
+[Tier 2: Feature Point Cloud] ─── Samples nearest sparse feature points within 0.5m radius
+           │ (Fails under extreme sunlight)
+           ▼
+[Tier 3: Camera Down-Vector]  ─── Projects ray down from camera pose at estimated ground height (~1.4m)
+```
+
+- **Vertical Wall Rejection:** To prevent chevrons from projecting onto steep cliff walls or doorway frames, `ARSessionBootstrapper.cs` strictly configures `PlaneDetectionMode.Horizontal` and enforces a vertical surface threshold (`MinGroundUpDot = 0.707`), rejecting any plane tilted more than 45 degrees.
+
+### 2. Golden Chevron Arrow Visuals (`NavigationArrow.cs` & `DynamicArrowManager.cs`)
+- **Procedural Curve Conformance:** Waypoints resampled at ~5-meter intervals generate a smooth Catmull-Rom spline curving naturally along the bends of the stairway.
+- **Surface-Hugging Chevrons:** Rather than floating high in the air, 3D chevrons are oriented with their normal matching the estimated slope of the flight of stairs, rotating flat into the ground plane.
+- **Pulsating Sacred Gold Glow:** Rendered using a lightweight URP unlit custom shader with additive alpha blending, ensuring high visibility under bright outdoor Indian sunlight without consuming excessive GPU fill-rate.
+
+### 3. Spatial Anchor Coordinate Transformation (`GeoAnchorFrame.cs`)
+Converts spherical Earth coordinates $(\phi, \lambda, h)$ into local Unity metric Cartesian coordinates $(X, Y, Z)$:
+$$\Delta X = R \cdot (\lambda - \lambda_0) \cdot \cos\left(\frac{\phi + \phi_0}{2}\right)$$
+$$\Delta Z = R \cdot (\phi - \phi_0)$$
+$$\Delta Y = h - h_0$$
+Where $R \approx 6,371,000\text{ m}$ is the mean Earth radius. This allows GPS waypoints up to 500 meters ahead to be placed into the AR camera frustum with high geometric fidelity.
+
 ---
