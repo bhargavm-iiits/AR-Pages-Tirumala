@@ -389,4 +389,99 @@ The production `AndroidManifest.xml` (`Assets/Plugins/Android/AndroidManifest.xm
      - **Minimum API Level:** Android 8.0 'Oreo' (API Level 26)
    - Click **Build and Run** with your Android device connected via USB with USB Debugging enabled.
 
+## 📂 Repository Directory Tour
+
+```
+AR-Pages-Tirumala/
+├── Assets/
+│   ├── Plugins/Android/
+│   │   └── AndroidManifest.xml         # Production Android permissions & FileProvider
+│   ├── Resources/                      # Runtime procedural materials & font assets
+│   ├── Scenes/
+│   │   └── Pages.unity                 # Master scene orchestrating all 12 screens & AR
+│   ├── Scripts/                        # 91 C# Production Source Files (~12,500 LOC)
+│   │   ├── AR/                         # AR Foundation & ARCore lifecycle & arrow managers
+│   │   │   ├── ARSessionBootstrapper.cs  # Hardware AR initialization & horizontal plane constraint
+│   │   │   ├── DynamicArrowManager.cs    # Spatially anchored 3D chevron pool
+│   │   │   ├── GeoAnchorFrame.cs         # Spherical WGS-84 to metric Cartesian transformation
+│   │   │   ├── GroundPlacementService.cs # 3-Tier fallback ground raycaster
+│   │   │   ├── HybridLocalizationEngine.cs # VIO + GPS along-track fusion
+│   │   │   └── NavigationArrow.cs        # Animated step-hugging chevron shader controller
+│   │   ├── Audio/                      # Native Android TTS bridge & voice cues
+│   │   ├── Core/                       # ServiceLocator, AppBootstrap, ConnectivityService
+│   │   ├── Data/ & Database/           # LandmarkData, Waypoints, JsonDatabase
+│   │   ├── Diagnostics/                # DebugOverlay & GpsTraceRecorder telemetry
+│   │   ├── Localization/               # Multi-language string tables & LocalizedLabel
+│   │   ├── Map/                        # Vector MapView, PoiMarkerLayer, RouteOverlay
+│   │   ├── Positioning/                # Kalman filtering, AlongTrackEstimator, RouteProgressTracker
+│   │   ├── Profile/                    # ExcelLoginStore & dependency-free XlsxWriter
+│   │   ├── Route/                      # GeoJsonParser, RouteBuilder, KmlImporter
+│   │   ├── UI/                         # Hand-rolled UGUI framework, 12 Screens, Overlays
+│   │   └── Utilities/                  # GeoMath, DistanceFormatter, EtaEstimate, HapticService
+│   ├── StreamingAssets/                # Packaged offline datasets (shipped inside APK)
+│   │   ├── Database/landmarks.json     # 40 sanctified shrines, mandapams & amenities
+│   │   ├── Localization/en.json        # 130+ localized UI keys
+│   │   ├── Route/alipiri_mettu.geojson # 7 OSM ways, 157 waypoints
+│   │   └── Templates/login_template.xlsx # Raw OOXML template for devotee logging
+│   └── TextMesh Pro/                   # High-contrast SDF font assets
+├── Docs/                               # Project blueprints, surveyed KML/KMZ, audit reports
+│   ├── Alipir.kml & Alipiri.kmz        # Precision elevation survey files
+│   ├── Dashavatar/                     # High-resolution sacred deity artworks
+│   ├── Images/AppScreens/              # Verified mobile app screenshots (10 screens)
+│   ├── PLAN.md, alipiri.md, alipiri_one.md # Engineering specs & revisions
+│   └── update1.md, update2.md          # Positioning architecture & repository audits
+└── Packages/manifest.json              # Unity package dependencies & ARCore local tgz
+```
+
 ---
+
+## 🎨 UI/UX Design System: Sacred Minimalist
+
+The user interface avoids third-party heavyweight UI toolkits in favor of an optimized, procedural UI framework (`Assets/Scripts/UI/Framework/`):
+
+- **Procedural Vector Drawing (`UIShapes.cs`):** All rounded card corners, circular status indicators, and pill badges are rendered procedurally using signed distance field (SDF) mathematics on the GPU, avoiding pixelated textures across varying phone screen densities.
+- **Micro-Animations (`UITween.cs`):** Lightweight, zero-garbage collection easing equations for bottom sheet transitions, screen fading, and arrival confetti bursts (`ConfettiBurst.cs`).
+- **Color Token Architecture (`UITheme.cs`):**
+
+| Token Name | Hex Code | Visual Swatch | Semantic Purpose |
+|---|:---:|:---:|---|
+| `SacredGold` | `#D4AF37` | <span style="background-color:#D4AF37; display:inline-block; width:18px; height:18px; border-radius:3px;"></span> | Primary CTA buttons, AR chevrons, Gopuram marks |
+| `TempleOnyx` | `#121212` | <span style="background-color:#121212; display:inline-block; width:18px; height:18px; border-radius:3px; border:1px solid #444;"></span> | Background surface, glare reduction under sunlight |
+| `CardElevated` | `#1E1B18` | <span style="background-color:#1E1B18; display:inline-block; width:18px; height:18px; border-radius:3px; border:1px solid #444;"></span> | Interactive cards, modal overlays, landmark containers |
+| `SandstoneWarm`| `#E6CA65` | <span style="background-color:#E6CA65; display:inline-block; width:18px; height:18px; border-radius:3px;"></span> | Heading typography, secondary action accents |
+| `JalaCyan` | `#00D2FF` | <span style="background-color:#00D2FF; display:inline-block; width:18px; height:18px; border-radius:3px;"></span> | Free TTD purified drinking water amenities |
+| `AmberWarning` | `#FFA500` | <span style="background-color:#FFA500; display:inline-block; width:18px; height:18px; border-radius:3px;"></span> | Bridged mountain trail segments, low-GPS warnings |
+
+---
+
+## 🔬 On-Device Field Testing & Lessons Learned
+
+Development of Alipiri AR Navigation incorporates **32 real-device confirmed fixes** documented directly in source comments:
+
+1. **Door & Cliff Misclassification (`ARSessionBootstrapper.cs:139`):** Early builds attempted to track vertical doorways and granite rock faces as walking planes. Restricted plane detection strictly to `PlaneDetectionMode.Horizontal`.
+2. **Chevrons Tilting into Sky (`NavigationArrow.cs:28`):** AR arrows on steep 35-degree steps frequently twisted vertically. Implemented step slope alignment vectors that keep chevrons flat relative to the stairs.
+3. **Android 7+ File Sharing (`AndroidManifest.xml:25`):** Exporting `login.xlsx` crashed on modern Android versions due to raw `file://` exposure. Wrapped export via secure `androidx.core.content.FileProvider`.
+4. **Thermal Throttling & Battery Conservation:** Continuous 60 FPS AR rendering on a 4-hour mountain climb overheats mobile SoCs. The engine intelligently throttles the camera pipeline to 30 FPS when the phone is held downwards or when resting at a mandapam.
+
+---
+
+## 🗺️ Future Roadmap
+
+- [ ] **Phase G (Connected Heritage Layer):** Integrate Google ARCore Geospatial API at Alipiri Gate and Tirumala Temple for centimeter-precision Visual Positioning System (VPS) orientation.
+- [ ] **Indic Language Expansion:** Import Noto Sans Telugu, Tamil, Kannada, and Hindi font SDF atlases for authentic vernacular scripture and audio commentary.
+- [ ] **KML Elevation Elevation Profile:** Process `Docs/Alipiri.kmz` 3D altitude triples to replace estimated step metrics with exact per-step incline graphs.
+
+---
+
+## 🤝 Devotional Credits & Acknowledgments
+
+- **Tirumala Tirupati Devasthanams (TTD):** For maintaining the sacred Alipiri pathway and providing pilgrims with free drinking water (*Jala Prasadam*), security, and spiritual solace.
+- **OpenStreetMap Contributors:** For surveyed geographical coordinates of the Alipiri pedestrian ways.
+- **Google ARCore & Unity XR Teams:** For robust mobile spatial computing foundations.
+
+---
+
+<div align="center">
+  <sub>Dedicated with humility and devotion at the holy lotus feet of Lord Sri Venkateswara Swamy.</sub><br/>
+  <strong>Govinda! Govinda! Venkataramana Govinda!</strong>
+</div>
