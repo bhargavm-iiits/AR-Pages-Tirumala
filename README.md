@@ -135,4 +135,71 @@ The core navigation experience transitions seamlessly between high-level pilgrim
 | <img src="Docs/Images/AppScreens/04_navigation_dashboard.jpeg" width="360" alt="Navigation Dashboard" /> | <img src="Docs/Images/AppScreens/05_live_ar_camera_view.jpeg" width="360" alt="Live AR Wayfinding" /> |
 | **Real-time Pilgrim Dashboard**<br/>• Live progress (`0.00 of 7.29 km`)<br/>• Next landmark card (`TTD Jala Prasadam · 40m`)<br/>• Quick amenities filters (Water, Rest, Medical Help)<br/>• Bottom navigation tabs (Navigate, Map, Places, Journey, Guide) | **Outdoor Augmented Reality View**<br/>• Real-time camera feed with golden 3D chevrons<br/>• 3D spatial billboard pin (`TTD Jala Prasadam · 39 m`)<br/>• Turn banner (`72 m · Path bends right`)<br/>• Estimated remaining duration (`2 h 54 m`) |
 
+### 3. Interactive Offline Route Map & Grid Navigation
+The Map screen offers an intuitive bird's-eye perspective of the Tirumala ascent with high-performance vector rendering and real-time positioning.
+
+<div align="center">
+  <img src="Docs/Images/AppScreens/06_interactive_map.jpeg" width="380" alt="Offline Interactive Map" />
+  <p><em>Offline Dark-Theme Vector Grid Map with Live Pilgrim Dot, Multi-Color Trail States, and Temple POIs</em></p>
+</div>
+
+- **Dynamic Trail Status Coloring:**
+  - <span style="color:#00D2FF">■</span> **Completed Segment (Cyan):** Visualizes path distance already climbed.
+  - <span style="color:#D4AF37">■</span> **Remaining Segment (Gold):** Active surveyed route leading up to Tirumala.
+  - <span style="color:#FFA500">■</span> **Approximate Segment (Amber):** Straight-line bridged switchback section where satellite geometry is interpolated.
+- **Pulsating Live Pilgrim Marker (`UserMarker.cs`):** Smooth lerping GPS blue dot with forward-facing orientation beam indicating cardinal direction.
+- **Micro-Callout POI Markers (`PoiMarkerLayer.cs`):** Interactive miniature temple and statue pins displaying name and distance on tap.
+
+---
+
+## 🧭 Navigation & Positioning Engine
+
+The heart of the application is a purpose-built positioning engine located in `Assets/Scripts/Positioning/`, designed to survive severe mountain multipath distortion and canyon GPS degradation.
+
+```
+       [ Raw Hardware GPS ] (Lat, Lon, Acc, Speed, Bearing)
+                │
+                ▼
+      [ GpsKalmanFilter ] ─── Reject >3σ velocity spikes & multipath reflection
+                │
+                ▼
+    [ AlongTrackEstimator ] ─── Orthogonal projection onto 1D Polyline space
+                │
+                ├─── StepCounterSource (Pedestrian Dead Reckoning fallback)
+                ├─── BarometerSource (Vertical ascent verification)
+                │
+                ▼
+  [ NavigationConfidenceMachine ] ─── Multi-state trust model
+    ├── HighAccuracy (< 8m error)
+    ├── DegradedGps (8m - 25m error)
+    ├── BridgedZone (Switchback interpolation)
+    └── LostLock (> 30s no valid fix)
+```
+
+### 1. 1D Along-Track Route Projection
+Standard navigation treats position as a free 2D point $(x, y)$. On a steep mountain stairway, a 20-meter lateral GPS drift places the user in an inaccessible jungle ravine.
+
+`AlongTrackEstimator.cs` constrains the user's progress strictly along the 1D arc-length $s \in [0, L]$ of the surveyed route:
+$$\text{Project}(P) = \arg\min_{s} \| P - \mathbf{R}(s) \|_2$$
+Where $\mathbf{R}(s)$ is the piecewise linear representation of the route polyline. Cross-track error $e_\perp$ is monitored:
+$$e_\perp = \| P - \mathbf{R}(s) \|$$
+If $e_\perp > 35\text{ m}$, the confidence state machine drops to `DegradedGps` or prompts a sensor recalibration.
+
+### 2. Route Composition & Mathematical Analysis
+The route is derived from OpenStreetMap data (`alipiri_mettu.geojson`) parsed by `GeoJsonParser.cs` and chained by `RouteBuilder.cs`.
+
+| OSM Way ID | Vertices | Segment Length | Join Offset | Architectural Role |
+|---|---:|---:|---:|---|
+| `way/30434845` | 65 | 2,573.7 m | 0.0 m | Alipiri Arch $\to$ Gali Gopuram (Initial steep climb) |
+| `way/367434743` | 2 | 7.9 m | 0.0 m | Connector stub |
+| `way/367434740` | 12 | 463.1 m | 0.0 m | Mid-mountain flight |
+| `way/367434742` | 2 | 15.6 m | 0.0 m | Connector stub |
+| `way/367434744` | 47 | 2,167.1 m | **1,171.7 m** | Ascends past Deer Park $\to$ Mountain flank |
+| **⚠ Bridged Zone** | — | **1,171.7 m** | — | Straight-line interpolation (`isBridged = true`) |
+| `way/30434846` | 33 | 889.5 m | — | Mokalla Mettu $\to$ Tirumala Sri Vari Sannidhi |
+| **Total Surveyed** | **157** | **7,288.4 m** | — | **Mean waypoint spacing: 39.6 m (resampled to ~5 m)** |
+
+> [!NOTE]
+> **The 1,171.7 m Mountain Gap:** OpenStreetMap has never digitized the switchback steps between coordinates `(13.664720, 79.365567)` and `(13.666465, 79.354873)`. Rather than fabricating a fictitious path, `RouteBuilder.cs` bridges this gap with an amber straight line, and the UI transparently informs the devotee that the path is approximate in this section.
+
 ---
