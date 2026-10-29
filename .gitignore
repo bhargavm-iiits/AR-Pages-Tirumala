@@ -19,7 +19,8 @@
 sysinfo.txt
 
 # Builds
-*.apk
+# *.apk is managed via Git LFS
+!Alipiri AR Navigation.apk
 *.aab
 *.unitypackage
 *.app
@@ -88,7 +89,7 @@ Assets/StreamingAssets/map_api_key.txt.meta
 ProjectSettings/ARCoreExtensionsProjectSettings.json
 
 *.exe
-*.apk
+!Alipiri AR Navigation.apk
 
 
 *_BackUpThisFolder*

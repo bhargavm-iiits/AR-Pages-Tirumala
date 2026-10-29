@@ -9,12 +9,6 @@ real corridor figures supplied by the project owner:
 975 m elevation gain
 9,000 – 12,000 m walking distance (endpoint-dependent)
 ```
-
-Companion documents (published, private links):
-
-- Corridor Review — https://claude.ai/code/artifact/2d54365f-ff47-4ad5-a5a6-8b72ce0efc2c
-- Build Plan — https://claude.ai/code/artifact/b9299a43-ad79-4c08-a081-7201d6691415
-
 ---
 
 ## 00 · Bottom line

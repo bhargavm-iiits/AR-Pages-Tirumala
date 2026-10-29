@@ -161,5 +161,3 @@ tune once the rest of the palette has settled.
 - `Docs/NewPlan.md` — Rev 3, plan-of-record for the app. D6 (description field) and the phase-status
   table overlap with this document.
 - `PLAN.md` — Rev 2, superseded, kept as historical record.
-- Published version of this audit:
-  https://claude.ai/code/artifact/1e9b2a02-32c1-40be-9155-b2fc937b4176
